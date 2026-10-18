@@ -1,0 +1,16 @@
+{
+  "name": "Spelletjes van Defne",
+  "short_name": "Defne",
+  "description": "Rekenspelletjes: bak een pizza en richt je eigen klas in.",
+  "lang": "nl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFF9F0",
+  "theme_color": "#2F54B5",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
