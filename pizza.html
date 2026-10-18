@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pizzeria Defne</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: pizza on a wooden board (left / top) next to the order card with the sum (right / bottom), on a gingham tablecloth. */
+:root {
+  --cloth: #F8F0E6;
+  --check: rgba(204, 58, 46, .16);
+  --ink: #33231A;
+  --muted: #7A6455;
+  --card: #FFFCF7;
+  --line: #EADBCB;
+  --tomato: #D63B2F;
+  --tomato-dark: #A9271D;
+  --basil: #2E8B47;
+  --basil-soft: #E3F2E5;
+  --cheese: #F6C945;
+  --wood: #C98C55;
+  --wood-dark: #A46A39;
+  --display: "Fredoka", "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  /* answer pad (sommen.js) */
+  --q-ink: var(--ink); --q-muted: var(--muted); --q-soft: var(--cloth); --q-card: #fff; --q-line: var(--line); --q-faint: #CDB8A6;
+  --q-accent: var(--tomato); --q-good: var(--basil); --q-good-dark: #1F6633; --q-good-soft: var(--basil-soft); --q-bad: var(--tomato); --q-display: var(--display);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.panel { display: flex; flex-direction: column; gap: 14px; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--body);
+  color: var(--ink);
+  background-color: var(--cloth);
+  background-image:
+    linear-gradient(90deg, var(--check) 50%, transparent 50%),
+    linear-gradient(var(--check) 50%, transparent 50%);
+  background-size: 56px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 24px;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--basil); outline-offset: 3px; }
+
+.app { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Header */
+.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  background: var(--card); border-radius: 20px; padding: 10px 16px;
+  box-shadow: 0 3px 0 var(--line);
+}
+.brand { font-family: var(--display); font-weight: 700; font-size: 1.6rem; color: var(--tomato); letter-spacing: .5px; }
+.home { color: inherit; text-decoration: none; padding-right: 2px; }
+.brand small { display: block; font-family: var(--body); font-size: .8rem; color: var(--muted); font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+.counters { display: flex; gap: 8px; align-items: center; }
+.pill {
+  font-family: var(--display); font-weight: 600; font-size: 1.15rem;
+  background: var(--cloth); border-radius: 999px; padding: 6px 14px; font-variant-numeric: tabular-nums;
+}
+.icon-btn { border: 0; background: var(--cloth); border-radius: 999px; width: 44px; height: 44px; font-size: 1.3rem; }
+
+/* Steps */
+.steps { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.step {
+  font-family: var(--display); font-weight: 600; font-size: 1rem;
+  padding: 6px 14px; border-radius: 999px; background: var(--card); color: var(--muted);
+  border: 2px solid var(--line);
+}
+.step.now { border-color: var(--tomato); color: var(--tomato); }
+.step.ok { background: var(--basil); border-color: var(--basil); color: #fff; }
+.step.ok::before { content: "✓ "; }
+
+/* Main */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.stage { position: relative; display: grid; place-items: center; padding: 8px 0; }
+.board {
+  width: min(100%, 440px); aspect-ratio: 1; max-width: 100%;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle at 40% 45%, rgba(255,255,255,.07) 0 6px, rgba(0,0,0,.04) 6px 11px),
+    radial-gradient(circle at 35% 30%, #DDA16A, var(--wood) 55%, var(--wood-dark));
+  box-shadow: 0 10px 0 var(--wood-dark), 0 18px 30px rgba(60, 30, 10, .25);
+  display: grid; place-items: center; position: relative;
+}
+@media (max-width: 760px) { .board { width: min(100%, 180px); } .brand small { display: none; } .top { flex-wrap: nowrap; padding: 8px 12px; } .pill { font-size: 1rem; padding: 4px 10px; } .icon-btn { width: 38px; height: 38px; font-size: 1.1rem; } .app { gap: 10px; } .step { font-size: .85rem; padding: 4px 10px; } .brand { font-size: 1.3rem; } .card { padding: 16px; } 
+.big-btn {
+  border: 0; border-radius: 18px; padding: 16px 24px;
+  font-family: var(--display); font-weight: 700; font-size: 1.5rem;
+  background: var(--tomato); color: #fff; box-shadow: 0 5px 0 var(--tomato-dark);
+}
+.big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--tomato-dark); }
+.big-btn:disabled { background: #D9C7B8; box-shadow: 0 5px 0 #BFA996; cursor: default; }
+.big-btn.green { background: var(--basil); box-shadow: 0 5px 0 #1F6633; }
+.link-btn { border: 0; background: none; color: var(--muted); font-weight: 800; text-decoration: underline; padding: 6px; }
+
+.levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.level {
+  border: 3px solid var(--line); background: #fff; border-radius: 16px; padding: 12px 6px;
+  font-family: var(--display); font-weight: 600; font-size: 1.3rem;
+}
+.level small { display: block; font-family: var(--body); font-size: .8rem; color: var(--muted); font-weight: 700; }
+.level[aria-pressed="true"] { border-color: var(--tomato); background: #FFF0EC; color: var(--tomato-dark); }
+
+.hello { font-family: var(--display); font-weight: 700; font-size: 2rem; margin: 0; text-wrap: balance; }
+.lead { font-size: 1.15rem; margin: 0; line-height: 1.5; }
+
+.tops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.top-btn {
+  border: 3px solid var(--line); background: #fff; border-radius: 18px; padding: 10px 4px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--display); font-weight: 600; font-size: 1.05rem;
+}
+.top-btn svg { width: 54px; height: 54px; }
+.top-btn:disabled { border-color: var(--basil); background: var(--basil-soft); cursor: default; }
+.top-btn:disabled span::before { content: "✓ "; color: var(--basil); }
+.note { text-align: center; color: var(--muted); font-weight: 700; margin: 0; }
+
+.stars { font-size: 2rem; text-align: center; letter-spacing: 4px; text-wrap: balance; }
+.center { text-align: center; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+.confetti { position: fixed; top: -20px; width: 12px; height: 16px; border-radius: 3px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .confetti { display: none; }
+}
+@media (max-width: 760px) {
+  .card, .panel { gap: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><a href="index.html" class="home" aria-label="Alle spelletjes">‹</a> Pizzeria Defne<small>Rekenen &amp; bakken</small></div>
+    <div class="counters">
+      <span class="pill" title="Sterren">⭐ <span id="starCount">0</span></span>
+      <span class="pill" title="Pizza's gemaakt">🍕 <span id="pizzaCount">0</span></span>
+      <button class="icon-btn" id="soundBtn" aria-label="Geluid aan of uit">🔊</button>
+    </div>
+  </header>
+
+  <nav class="steps" id="steps" aria-label="Stappen">
+    <span class="step" data-step="0">Deeg</span>
+    <span class="step" data-step="1">Saus</span>
+    <span class="step" data-step="2">Kaas</span>
+    <span class="step" data-step="3">Beleg</span>
+    <span class="step" data-step="4">Oven</span>
+  </nav>
+
+  <main class="main">
+    <section class="stage" aria-label="Jouw pizza">
+      <div class="board" id="board">
+        <svg id="pizza" viewBox="-100 -100 200 200" role="img" aria-label="Pizza">
+          <g id="base" class="layer">
+            <circle r="92" class="crust"></circle>
+            <circle r="80" class="dough"></circle>
+          </g>
+          <g id="sauce" class="layer"><path class="sauce" id="saucePath"></path></g>
+          <g id="cheese" class="layer"><path class="cheese" id="cheesePath"></path><g class="spots" id="spots"></g></g>
+          <g id="toppings"></g>
+        </svg>
+      </div>
+    </section>
+
+    <section class="card" aria-live="polite">
+      <!-- Start -->
+      <div id="pStart">
+        <div class="panel">
+          <p class="hello">Hoi Defne! 👋</p>
+          <p class="lead">Wij gaan een pizza bakken. Bij elke stap krijg je een som. Reken goed, dan komt er iets op je pizza!</p>
+          <p class="intro">Kies je niveau:</p>
+          <div class="levels" id="levels">
+            <button class="level" data-level="1">Tot 20<small>goed bezig</small></button>
+            <button class="level" data-level="2">Tot 30<small>knap</small></button>
+            <button class="level" data-level="3">Tot 50<small>super knap</small></button>
+          </div>
+          <button class="big-btn" id="startBtn">Start de pizza! 🍕</button>
+        </div>
+      </div>
+
+      <!-- Question -->
+      <div id="pQ" class="panel" hidden>
+        <div class="task"><span id="taskTitle">Stap 1: Het deeg</span>
+          <button class="icon-btn say" id="sayBtn" aria-label="Lees de som voor">🗣️</button></div>
+        <div id="quiz"></div>
+      </div>
+
+      <!-- Oven -->
+      <div id="pBake" class="panel" hidden>
+        <div class="task"><span>De pizza bakt…</span></div>
+        <p class="lead">Even wachten. Hij wordt mooi bruin! 🔥</p>
+      </div>
+
+      <!-- Toppings -->
+      <div id="pTop" class="panel" hidden>
+        <div class="task"><span>Wat wil je op je pizza?</span></div>
+        <p class="intro">Tik op wat je lekker vindt. Voor elk ding krijg je een som.</p>
+        <div class="tops" id="tops"></div>
+        <p class="note" id="topNote">Kies minstens 2 dingen.</p>
+        <button class="big-btn" id="ovenBtn" disabled>Naar de oven! 🔥</button>
+      </div>
+
+      <!-- Done -->
+      <div id="pDone" class="panel" hidden>
+        <p class="hello center">Je pizza is klaar! 🎉</p>
+        <p class="lead center">Eet smakelijk, Defne!</p>
+        <div class="stars" id="roundStars"></div>
+        <p class="lead center" id="roundText"></p>
+        <div class="row">
+          <button class="big-btn" id="againBtn">Nog een pizza! 🍕</button>
+        </div>
+        <div class="row"><button class="link-btn" id="levelBtn">Ander niveau kiezen</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="sommen.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('pizzeria-' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('pizzeria-' + k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  const state = {
+    level: store.get('level', 1),
+    stars: store.get('stars', 0),
+    pizzas: store.get('pizzas', 0),
+    roundStars: 0, roundQs: 0, task: null,
+    chosen: new Set(), placed: []
+  };
+  if (!Sommen.LEVELS[state.level]) state.level = 1;
+  Sommen.soundOn = store.get('sound', true);
+  const tones = Sommen.tones;
+
+  // ---------- Toppings ----------
+  const TOPPINGS = {
+    salami: { name: 'Salami', count: 6, draw: () =>
+      '<circle r="10" fill="#B8352B" stroke="#8C1F17" stroke-width="1.5"/><circle cx="-4" cy="-3" r="1.6" fill="#F2C0B0"/><circle cx="3" cy="2" r="1.4" fill="#F2C0B0"/><circle cx="-1" cy="5" r="1.2" fill="#F2C0B0"/><circle cx="5" cy="-4" r="1.1" fill="#F2C0B0"/>' },
+    champignons: { name: 'Champignons', count: 6, draw: () =>
+      '<path d="M-10 0 A10 9 0 0 1 10 0 Z" fill="#E8DAC3" stroke="#A88E6C" stroke-width="1.5"/><rect x="-3.5" y="0" width="7" height="8" rx="2" fill="#F1E6D3" stroke="#A88E6C" stroke-width="1.5"/>' },
+    paprika: { name: 'Paprika', count: 7, draw: () =>
+      '<path d="M-9 2 A9 9 0 0 1 9 2" fill="none" stroke="#3E9B3A" stroke-width="4" stroke-linecap="round"/>' },
+    olijven: { name: 'Olijven', count: 8, draw: () =>
+      '<circle r="5.5" fill="none" stroke="#2B2826" stroke-width="4"/>' },
+    ananas: { name: 'Ananas', count: 7, draw: () =>
+      '<path d="M0 -8 L8 6 L-8 6 Z" fill="#F7D34B" stroke="#D3A223" stroke-width="1.5" stroke-linejoin="round"/>' },
+    basilicum: { name: 'Basilicum', count: 5, draw: () =>
+      '<path d="M0 -10 C9 -6 9 6 0 10 C-9 6 -9 -6 0 -10 Z" fill="#3B9142" stroke="#26692D" stroke-width="1.2"/><path d="M0 -8 L0 8" stroke="#2A6E30" stroke-width="1.2"/>' }
+  };
+
+  // ---------- Pizza drawing ----------
+  function wavy(r, a1, f1, a2, f2, ph) {
+    const pts = [];
+    for (let i = 0; i < 72; i++) {
+      const t = i / 72 * Math.PI * 2;
+      const rr = r + a1 * Math.sin(f1 * t + ph) + a2 * Math.sin(f2 * t);
+      pts.push((rr * Math.cos(t)).toFixed(1) + ' ' + (rr * Math.sin(t)).toFixed(1));
+    }
+    return 'M' + pts.join(' L') + ' Z';
+  }
+  function freshPizza() {
+    $('#saucePath').setAttribute('d', wavy(76, 2.2, 9, 1.2, 17, Math.random() * 6));
+    $('#cheesePath').setAttribute('d', wavy(68, 3.5, 7, 2, 13, Math.random() * 6));
+    let spots = '';
+    for (let i = 0; i < 9; i++) {
+      const a = Math.random() * Math.PI * 2, d = rnd(10, 60);
+      spots += `<ellipse cx="${(d * Math.cos(a)).toFixed(1)}" cy="${(d * Math.sin(a)).toFixed(1)}" rx="${rnd(3, 6)}" ry="${rnd(2, 4)}" fill="#C97C2A" opacity=".55"/>`;
+    }
+    $('#spots').innerHTML = spots;
+    $('#toppings').innerHTML = '';
+    state.placed = [];
+    $('#board').classList.remove('rolled', 'has-sauce', 'has-cheese', 'baked');
+  }
+  function addTopping(key) {
+    const t = TOPPINGS[key];
+    let html = '';
+    for (let n = 0; n < t.count; n++) {
+      let x = 0, y = 0;
+      for (let tries = 0; tries < 60; tries++) {
+        const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * 58;
+        x = d * Math.cos(a); y = d * Math.sin(a);
+        if (state.placed.every(p => Math.hypot(p[0] - x, p[1] - y) > 15)) break;
+      }
+      state.placed.push([x, y]);
+      html += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rnd(0, 359)})"><g class="pop" style="animation-delay:${n * 90}ms">${t.draw()}</g></g>`;
+    }
+    $('#toppings').insertAdjacentHTML('beforeend', html);
+  }
+
+  // ---------- UI helpers ----------
+  const panels = ['#pStart', '#pQ', '#pBake', '#pTop', '#pDone'];
+  function show(id) { panels.forEach(p => { $(p).hidden = p !== id; }); }
+  function setStep(now) {
+    document.querySelectorAll('.step').forEach(el => {
+      const i = +el.dataset.step;
+      el.classList.toggle('ok', now !== null && i < now);
+      el.classList.toggle('now', i === now);
+    });
+  }
+  function counters() {
+    $('#starCount').textContent = state.stars;
+    $('#pizzaCount').textContent = state.pizzas;
+    $('#soundBtn').textContent = Sommen.soundOn ? '🔊' : '🔇';
+  }
+
+  // ---------- Flow ----------
+  const TASKS = {
+    dough: { step: 0, title: 'Stap 1: Het deeg' },
+    sauce: { step: 1, title: 'Stap 2: Tomatensaus' },
+    cheese: { step: 2, title: 'Stap 3: Kaas' },
+    topping: { step: 3 },
+    oven: { step: 4, title: 'De pizza gaat de oven in!' }
+  };
+
+  const quiz = Sommen.quiz({ root: $('#quiz'), level: () => state.level, onSolved });
+
+  function ask(kind, topping) {
+    state.task = { kind, topping };
+    state.roundQs++;
+    $('#taskTitle').textContent = kind === 'topping' ? 'Beleg: ' + TOPPINGS[topping].name : TASKS[kind].title;
+    setStep(TASKS[kind].step);
+    show('#pQ');
+    quiz.ask();
+  }
+
+  function onSolved(firstTry) {
+    if (firstTry) { state.stars++; state.roundStars++; store.set('stars', state.stars); counters(); }
+    const { kind, topping } = state.task;
+    const board = $('#board');
+    if (kind === 'dough') { board.classList.add('rolled'); setTimeout(() => ask('sauce'), 900); }
+    else if (kind === 'sauce') { board.classList.add('has-sauce'); setTimeout(() => ask('cheese'), 900); }
+    else if (kind === 'cheese') { board.classList.add('has-cheese'); setTimeout(showToppings, 900); }
+    else if (kind === 'topping') { addTopping(topping); state.chosen.add(topping); tones([660, 880], .08); setTimeout(showToppings, 700); }
+    else if (kind === 'oven') bake();
+  }
+
+  function showToppings() {
+    setStep(3);
+    $('#tops').innerHTML = Object.entries(TOPPINGS).map(([k, t]) =>
+      `<button class="top-btn" data-top="${k}" ${state.chosen.has(k) ? 'disabled' : ''}><svg viewBox="-16 -16 32 32" aria-hidden="true"><g transform="scale(1.3)">${t.draw()}</g></svg><span>${t.name}</span></button>`).join('');
+    const n = state.chosen.size;
+    $('#ovenBtn').disabled = n < 2;
+    $('#topNote').textContent = n < 2 ? `Kies minstens 2 dingen. (${n} van 2)` : n === 6 ? 'Alles erop! Nu de oven in.' : 'Mmm! Nog meer, of naar de oven?';
+    show('#pTop');
+  }
+
+  function bake() {
+    show('#pBake');
+    const oven = document.createElement('div');
+    oven.className = 'oven';
+    oven.innerHTML = '<div><span>🔥🔥🔥</span>Bakken…</div>';
+    $('#board').appendChild(oven);
+    tones([392, 440, 494, 523], .2, 'triangle');
+    setTimeout(() => { $('#board').classList.add('baked'); }, 1400);
+    setTimeout(() => { oven.remove(); finish(); }, 2800);
+  }
+
+  function finish() {
+    setStep(5);
+    state.pizzas++; store.set('pizzas', state.pizzas); counters();
+    tones([523, 659, 784, 1046], .14);
+    $('#roundStars').textContent = '⭐'.repeat(state.roundStars) || '🍕';
+    $('#roundText').textContent = `Je had ${state.roundStars} van de ${state.roundQs} sommen in één keer goed.`;
+    show('#pDone');
+    confetti();
+  }
+
+  function confetti() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const colors = ['#D63B2F', '#2E8B47', '#F6C945', '#F3D394', '#ffffff'];
+    for (let i = 0; i < 50; i++) {
+      const c = document.createElement('span');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = pick(colors);
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      c.style.animationDelay = Math.random() * .6 + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 5000);
+    }
+  }
+
+  function startRound() {
+    freshPizza();
+    state.chosen = new Set(); state.roundStars = 0; state.roundQs = 0;
+    tones([440, 554], .1);
+    ask('dough');
+  }
+
+  function goStart() {
+    freshPizza();
+    setStep(null);
+    document.querySelectorAll('.level').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.level === state.level)));
+    show('#pStart');
+  }
+
+  // ---------- Events ----------
+  $('#levels').addEventListener('click', e => {
+    const b = e.target.closest('.level'); if (!b) return;
+    state.level = +b.dataset.level; store.set('level', state.level);
+    document.querySelectorAll('.level').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  $('#startBtn').addEventListener('click', startRound);
+  $('#againBtn').addEventListener('click', startRound);
+  $('#levelBtn').addEventListener('click', goStart);
+  $('#ovenBtn').addEventListener('click', () => ask('oven'));
+  $('#sayBtn').addEventListener('click', () => quiz.speak());
+  $('#soundBtn').addEventListener('click', () => { Sommen.soundOn = !Sommen.soundOn; store.set('sound', Sommen.soundOn); counters(); });
+  $('#tops').addEventListener('click', e => {
+    const b = e.target.closest('.top-btn'); if (!b || b.disabled) return;
+    ask('topping', b.dataset.top);
+  });
+
+  counters();
+  goStart();
+})();
+</script>
+</body>
+</html>

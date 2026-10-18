@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Klas van Defne</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: the classroom scene as a picture on squared maths paper (left / top), the teacher's order card (right / bottom). */
+:root {
+  --paper: #FBFCFF;
+  --grid: #D9E4F5;
+  --ink: #23304D;
+  --muted: #61708F;
+  --card: #FFFFFF;
+  --line: #DCE3F0;
+  --blue: #2F54B5;
+  --blue-dark: #1F3B85;
+  --marker: #FFD84D;
+  --good: #2E8B57;
+  --good-soft: #E1F3E8;
+  --red: #D9473B;
+  --display: "Fredoka", "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  /* answer pad (sommen.js) */
+  --q-ink: var(--ink); --q-muted: var(--muted); --q-soft: #EEF3FC; --q-card: #fff; --q-line: var(--line); --q-faint: #B9C4DA;
+  --q-accent: var(--blue); --q-good: var(--good); --q-good-dark: #1E6440; --q-good-soft: var(--good-soft); --q-bad: var(--red); --q-display: var(--display);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  margin: 0; font-family: var(--body); color: var(--ink);
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 24px;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 4px solid var(--blue); outline-offset: 3px; }
+
+.app { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--card); border-radius: 18px; padding: 10px 16px; box-shadow: 0 3px 0 var(--line);
+}
+.brand { font-family: var(--display); font-weight: 700; font-size: 1.6rem; color: var(--blue); }
+.brand mark { background: linear-gradient(transparent 55%, var(--marker) 55%); color: inherit; padding: 0 2px; }
+.brand small { display: block; font-family: var(--body); font-size: .8rem; color: var(--muted); font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.home { color: inherit; text-decoration: none; padding-right: 2px; }
+.counters { display: flex; gap: 8px; align-items: center; }
+.pill { font-family: var(--display); font-weight: 600; font-size: 1.15rem; background: #EEF3FC; border-radius: 999px; padding: 6px 14px; font-variant-numeric: tabular-nums; }
+.icon-btn { border: 0; background: #EEF3FC; border-radius: 999px; width: 44px; height: 44px; font-size: 1.3rem; flex: none; }
+
+.steps { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.step { font-family: var(--display); font-weight: 600; font-size: .95rem; padding: 5px 12px; border-radius: 999px; background: var(--card); color: var(--muted); border: 2px solid var(--line); }
+.step.now { border-color: var(--blue); color: var(--blue); }
+.step.ok { background: var(--good); border-color: var(--good); color: #fff; }
+.step.ok::before { content: "✓ "; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 800px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.scene-wrap { position: relative; background: var(--card); border-radius: 22px; padding: 10px; box-shadow: 0 5px 0 var(--line), 0 14px 30px rgba(35, 48, 77, .12); }
+.scene-wrap::before { content: ""; position: absolute; top: -10px; left: 50%; width: 90px; height: 22px; margin-left: -45px; background: rgba(255, 216, 77, .75); transform: rotate(-2deg); border-radius: 3px; }
+#scene { display: block; width: 100%; height: auto; border-radius: 14px; }
+@media (max-width: 800px) { .scene-wrap { width: min(100%, 270px); margin: 0 auto; padding: 6px; } }
+
+#scene .pv { opacity: .6; }
+#scene .pop { transform-box: fill-box; transform-origin: center; animation: pop .55s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#scene .kid { transform-box: fill-box; transform-origin: bottom; animation: hop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes hop { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.card { background: var(--card); border-radius: 24px; padding: 20px; box-shadow: 0 5px 0 var(--line), 0 14px 30px rgba(35, 48, 77, .12); min-width: 0; }
+.panel { display: flex; flex-direction: column; gap: 14px; }
+.task { font-family: var(--display); font-weight: 700; font-size: 1.45rem; color: var(--blue); display: flex; align-items: center; justify-content: space-between; gap: 8px; text-wrap: balance; }
+.hello { font-family: var(--display); font-weight: 700; font-size: 2rem; margin: 0; text-wrap: balance; }
+.lead { font-size: 1.15rem; margin: 0; line-height: 1.5; }
+.intro { font-size: 1.1rem; font-weight: 800; color: var(--muted); margin: 0; }
+.center { text-align: center; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+.levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.level { border: 3px solid var(--line); background: #fff; border-radius: 16px; padding: 12px 6px; font-family: var(--display); font-weight: 600; font-size: 1.3rem; }
+.level small { display: block; font-family: var(--body); font-size: .8rem; color: var(--muted); font-weight: 800; }
+.level[aria-pressed="true"] { border-color: var(--blue); background: #EAF0FD; color: var(--blue-dark); }
+
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.opts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.opt {
+  border: 3px solid var(--line); background: #fff; border-radius: 18px; padding: 12px 6px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-family: var(--display); font-weight: 600; font-size: 1.1rem;
+  box-shadow: 0 4px 0 var(--line);
+}
+.opt:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--line); }
+.opt .ico { font-size: 2.2rem; line-height: 1; }
+.opt .sw { width: 46px; height: 46px; border-radius: 50%; border: 3px solid rgba(35, 48, 77, .15); }
+.opt:disabled { border-color: var(--good); background: var(--good-soft); box-shadow: none; cursor: default; }
+.opt:disabled span:last-child::before { content: "✓ "; color: var(--good); }
+.note { text-align: center; color: var(--muted); font-weight: 800; margin: 0; }
+
+.big-btn { border: 0; border-radius: 18px; padding: 15px 24px; font-family: var(--display); font-weight: 700; font-size: 1.45rem; background: var(--blue); color: #fff; box-shadow: 0 5px 0 var(--blue-dark); }
+.big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--blue-dark); }
+.big-btn:disabled { background: #C9D2E3; box-shadow: 0 5px 0 #AEB9CF; cursor: default; }
+.link-btn { border: 0; background: none; color: var(--muted); font-weight: 800; text-decoration: underline; padding: 6px; align-self: flex-start; }
+.stars { font-size: 2rem; text-align: center; letter-spacing: 4px; }
+
+.confetti { position: fixed; top: -20px; width: 12px; height: 16px; border-radius: 3px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+@media (max-width: 800px) {
+  .brand { font-size: 1.3rem; } .brand small { display: none; }
+  .top { padding: 8px 12px; } .pill { font-size: 1rem; padding: 4px 10px; } .icon-btn { width: 38px; height: 38px; font-size: 1.1rem; }
+  .app { gap: 10px; } .step { font-size: .8rem; padding: 3px 9px; } .card { padding: 16px; } .panel { gap: 10px; }
+  .task { font-size: 1.25rem; } .opt { padding: 8px 4px; font-size: 1rem; } .opt .ico { font-size: 1.8rem; } .opt .sw { width: 36px; height: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .confetti { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><a href="index.html" class="home" aria-label="Alle spelletjes">‹</a> Klas van <mark>Defne</mark><small>Rekenen &amp; inrichten</small></div>
+    <div class="counters">
+      <span class="pill" title="Sterren">⭐ <span id="starCount">0</span></span>
+      <span class="pill" title="Klassen gemaakt">🏫 <span id="klasCount">0</span></span>
+      <button class="icon-btn" id="soundBtn" aria-label="Geluid aan of uit">🔊</button>
+    </div>
+  </header>
+
+  <nav class="steps" id="steps" aria-label="Stappen"></nav>
+
+  <main class="main">
+    <section class="scene-wrap" aria-label="Jouw klas">
+      <svg id="scene" viewBox="0 0 400 300" role="img" aria-label="Het klaslokaal"></svg>
+    </section>
+
+    <section class="card">
+      <div id="pStart" class="panel">
+        <p class="hello">Hoi juf Defne! 👩‍🏫</p>
+        <p class="lead">Vandaag ben jij de juf. Jij mag de klas helemaal zelf inrichten. Bij elke keuze krijg je een som. Soms zijn het er twee tegelijk!</p>
+        <p class="intro">Kies je niveau:</p>
+        <div class="levels" id="levels"></div>
+        <button class="big-btn" id="startBtn">Begin met de klas! 🏫</button>
+      </div>
+
+      <div id="pPick" class="panel" hidden>
+        <div class="task"><span id="pickTitle"></span></div>
+        <p class="intro" id="pickIntro">Tik op wat jij het mooist vindt.</p>
+        <div class="opts" id="opts"></div>
+        <p class="note" id="pickNote" hidden></p>
+        <button class="big-btn" id="decoDone" hidden>Klaar met versieren ➜</button>
+      </div>
+
+      <div id="pQ" class="panel" hidden>
+        <div class="task"><span id="qTitle"></span>
+          <button class="icon-btn" id="sayBtn" aria-label="Lees de som voor">🗣️</button></div>
+        <div id="quiz"></div>
+        <button class="link-btn" id="backBtn">← Toch iets anders kiezen</button>
+      </div>
+
+      <div id="pDone" class="panel" hidden>
+        <p class="hello center">Je klas is klaar! 🎉</p>
+        <p class="lead center">De kinderen komen binnen. Welkom in de klas van juf Defne!</p>
+        <div class="stars" id="roundStars"></div>
+        <p class="lead center" id="roundText"></p>
+        <div class="row"><button class="big-btn" id="againBtn">Nog een klas maken</button></div>
+        <div class="row"><button class="link-btn" id="levelBtn">Ander niveau kiezen</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="sommen.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('klas-' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('klas-' + k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  // ---------- Choices ----------
+  const STEPS = [
+    { id: 'muur', label: 'Muur', title: 'Welke kleur krijgt de muur?', opts: {
+      roze: { name: 'Roze', color: '#F7C5D5' }, blauw: { name: 'Lichtblauw', color: '#BFDDF5' },
+      mint: { name: 'Mintgroen', color: '#C4EBD5' }, geel: { name: 'Geel', color: '#FBE6A0' } } },
+    { id: 'vloer', label: 'Vloer', title: 'Wat voor vloer wil je?', opts: {
+      hout: { name: 'Hout', icon: '🪵' }, tapijt: { name: 'Blauw tapijt', icon: '🟦' },
+      tegels: { name: 'Tegels', icon: '🔳' }, gras: { name: 'Kunstgras', icon: '🌱' } } },
+    { id: 'raam', label: 'Raam', title: 'Wat zie je buiten het raam?', opts: {
+      zon: { name: 'Zon', icon: '☀️' }, regen: { name: 'Regen', icon: '🌧️' },
+      sneeuw: { name: 'Sneeuw', icon: '❄️' }, regenboog: { name: 'Regenboog', icon: '🌈' } } },
+    { id: 'bord', label: 'Bord', title: 'Welk bord komt er voor de klas?', opts: {
+      groen: { name: 'Groen bord', color: '#2F6B4F' }, wit: { name: 'Whiteboard', color: '#FAFAF7' },
+      zwart: { name: 'Zwart bord', color: '#2B2B2E' }, roze: { name: 'Roze bord', color: '#F59BBE' } } },
+    { id: 'tafels', label: 'Tafels', title: 'Welke kleur krijgen de tafels?', opts: {
+      rood: { name: 'Rood', color: '#E2574C' }, blauw: { name: 'Blauw', color: '#4C7FD8' },
+      geel: { name: 'Geel', color: '#F2C537' }, paars: { name: 'Paars', color: '#9B6BD3' } } },
+    { id: 'deco', label: 'Versiering', multi: true, title: 'Hoe versier je de klas?', opts: {
+      plant: { name: 'Plant', icon: '🪴' }, kast: { name: 'Boekenkast', icon: '📚' }, klok: { name: 'Klok', icon: '🕐' },
+      slinger: { name: 'Slinger', icon: '🎉' }, tekeningen: { name: 'Tekeningen', icon: '🎨' }, wereldbol: { name: 'Wereldbol', icon: '🌍' } } },
+    { id: 'dier', label: 'Klasdier', title: 'Welk klasdier komt er wonen?', opts: {
+      hamster: { name: 'Hamster', icon: '🐹' }, vis: { name: 'Vissen', icon: '🐟' },
+      konijn: { name: 'Konijn', icon: '🐰' }, schildpad: { name: 'Schildpad', icon: '🐢' } } }
+  ];
+
+  const state = {
+    level: store.get('level', 1), stars: store.get('stars', 0), klassen: store.get('klassen', 0),
+    stepIdx: -1, design: {}, deco: new Set(), preview: null, popKey: null, final: false,
+    roundStars: 0, roundQs: 0
+  };
+  if (!Sommen.LEVELS[state.level]) state.level = 1;
+  Sommen.soundOn = store.get('sound', true);
+
+  // ---------- Scene drawing (viewBox 0 0 400 300; wall to y=200, floor below) ----------
+  const DRAW = {
+    muur(v) {
+      const c = v ? STEPS[0].opts[v].color : '#ECE7DF';
+      return `<rect width="400" height="200" fill="${c}"/><rect y="193" width="400" height="8" fill="#000" opacity=".1"/>`;
+    },
+    vloer(v) {
+      let s = '';
+      if (!v) return `<rect y="200" width="400" height="100" fill="#DAD4C9"/>`;
+      if (v === 'hout') {
+        s = `<rect y="200" width="400" height="100" fill="#D9A56A"/>`;
+        for (let r = 0; r < 8; r++) {
+          const y = 200 + r * 13;
+          s += `<line x1="0" x2="400" y1="${y + 13}" y2="${y + 13}" stroke="#B9874C" stroke-width="1.5"/>`;
+          for (let x = 30 + (r % 2) * 40; x < 400; x += 80) s += `<line x1="${x}" x2="${x}" y1="${y}" y2="${y + 13}" stroke="#B9874C" stroke-width="1.5"/>`;
+        }
+      } else if (v === 'tapijt') {
+        s = `<rect y="200" width="400" height="100" fill="#4F7FC9"/>`;
+        for (let y = 208; y < 300; y += 14) for (let x = 8 + (y % 28 ? 7 : 0); x < 400; x += 14) s += `<circle cx="${x}" cy="${y}" r="2" fill="#6E98DA"/>`;
+      } else if (v === 'tegels') {
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 16; c++)
+          s += `<rect x="${c * 25}" y="${200 + r * 25}" width="25" height="25" fill="${(r + c) % 2 ? '#A9B4C2' : '#F3F1EC'}"/>`;
+      } else if (v === 'gras') {
+        s = `<rect y="200" width="400" height="100" fill="#79BF62"/>`;
+        for (let i = 0; i < 90; i++) {
+          const x = (i * 47) % 400 + (i % 3) * 3, y = 210 + (i * 29) % 88;
+          s += `<path d="M${x} ${y} l-2 -6 M${x} ${y} l2 -7" stroke="#5A9F45" stroke-width="1.5"/>`;
+        }
+      }
+      return s;
+    },
+    raam(v) {
+      const sky = { zon: '#8ED1FA', regen: '#9DAAB8', sneeuw: '#C9D6E3', regenboog: '#9AD7FB' }[v] || '#E4F1FB';
+      let s = `<rect x="26" y="38" width="84" height="92" fill="${sky}"/><g clip-path="url(#win)">`;
+      if (v === 'zon') s += `<circle cx="88" cy="62" r="13" fill="#FFD34D"/><g fill="#fff"><ellipse cx="50" cy="96" rx="16" ry="8"/><ellipse cx="62" cy="91" rx="11" ry="8"/></g>`;
+      if (v === 'regen') {
+        s += `<g fill="#E5EAF0"><ellipse cx="56" cy="58" rx="20" ry="10"/><ellipse cx="76" cy="54" rx="16" ry="11"/><ellipse cx="92" cy="60" rx="12" ry="8"/></g>`;
+        for (let i = 0; i < 12; i++) s += `<line x1="${34 + (i * 13) % 74}" y1="${76 + (i * 17) % 44}" x2="${31 + (i * 13) % 74}" y2="${84 + (i * 17) % 44}" stroke="#3E7CC0" stroke-width="2" stroke-linecap="round"/>`;
+      }
+      if (v === 'sneeuw') {
+        s += `<rect x="26" y="116" width="84" height="16" fill="#fff"/>`;
+        for (let i = 0; i < 16; i++) s += `<circle cx="${32 + (i * 23) % 74}" cy="${44 + (i * 31) % 70}" r="2.5" fill="#fff"/>`;
+      }
+      if (v === 'regenboog') ['#E84A3F', '#F39A2D', '#F6D23C', '#4FB858', '#3F8FDB', '#8C5BD1'].forEach((c, i) => {
+        const r = 40 - i * 4.5;
+        s += `<path d="M${68 - r} 134 A${r} ${r} 0 0 1 ${68 + r} 134" fill="none" stroke="${c}" stroke-width="4.5"/>`;
+      });
+      s += `</g><rect x="22" y="34" width="92" height="100" fill="none" stroke="#8A6544" stroke-width="6" rx="2"/>
+        <line x1="68" x2="68" y1="36" y2="132" stroke="#8A6544" stroke-width="4"/><line x1="24" x2="112" y1="84" y2="84" stroke="#8A6544" stroke-width="4"/>
+        <rect x="14" y="132" width="108" height="7" rx="2" fill="#8A6544"/>`;
+      return s;
+    },
+    kastje() {
+      return `<rect x="16" y="160" width="104" height="40" rx="3" fill="#B98552"/><line x1="68" x2="68" y1="164" y2="196" stroke="#94643A" stroke-width="2"/>
+        <circle cx="62" cy="180" r="2.5" fill="#6E4826"/><circle cx="74" cy="180" r="2.5" fill="#6E4826"/>`;
+    },
+    bord(v) {
+      if (!v) return `<rect x="132" y="30" width="156" height="88" rx="6" fill="none" stroke="#9AA6BF" stroke-width="3" stroke-dasharray="8 6"/><text x="210" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="30" fill="#9AA6BF">?</text>`;
+      const fill = STEPS[3].opts[v].color;
+      const ink = { groen: '#F4F1E8', zwart: '#F4F1E8', wit: '#2F54B5', roze: '#7A1E4A' }[v];
+      const lines = state.final
+        ? `<text x="210" y="70" text-anchor="middle" font-size="24" font-weight="700">Welkom!</text><text x="210" y="96" text-anchor="middle" font-size="14">Klas van juf Defne</text>`
+        : `<text x="210" y="62" text-anchor="middle" font-size="15" font-weight="600">Klas van Defne</text><text x="210" y="92" text-anchor="middle" font-size="14">12 + 5 = 17</text>`;
+      return `<rect x="132" y="30" width="156" height="88" rx="6" fill="${fill}" stroke="#9A6A3C" stroke-width="6"/>
+        <g fill="${ink}" font-family="Fredoka, sans-serif">${lines}</g>
+        <rect x="146" y="119" width="128" height="5" rx="2" fill="#9A6A3C"/><rect x="236" y="114" width="12" height="4" rx="1" fill="#fff"/><rect x="252" y="114" width="10" height="4" rx="1" fill="#F6D23C"/>`;
+    },
+    tafels(v) {
+      const xs = [58, 165, 272];
+      if (!v) return xs.map(x => `<rect x="${x}" y="222" width="70" height="40" rx="4" fill="none" stroke="#A39C90" stroke-width="2.5" stroke-dasharray="6 5"/>`).join('');
+      const c = STEPS[4].opts[v].color;
+      const hair = ['#5A3825', '#E8C26A', '#2B1D14'], shirt = ['#F28C28', '#3FA7A0', '#E2574C'];
+      return xs.map((x, i) => `
+        <rect x="${x}" y="222" width="70" height="10" rx="2" fill="${c}"/><rect x="${x + 6}" y="232" width="4" height="30" fill="#6B5B4E"/><rect x="${x + 60}" y="232" width="4" height="30" fill="#6B5B4E"/>
+        ${state.final ? `<g class="kid" style="animation-delay:${i * 250}ms"><ellipse cx="${x + 35}" cy="256" rx="17" ry="11" fill="${shirt[i]}"/><circle cx="${x + 35}" cy="238" r="12" fill="${hair[i]}"/>${i === 1 ? `<circle cx="${x + 35}" cy="225" r="5" fill="${hair[i]}"/>` : ''}</g>` : ''}
+        <rect x="${x + 20}" y="248" width="30" height="20" rx="5" fill="${c}" stroke="#000" stroke-opacity=".15"/>
+        <rect x="${x + 16}" y="268" width="38" height="5" rx="2" fill="${c}"/><rect x="${x + 19}" y="273" width="3" height="18" fill="#6B5B4E"/><rect x="${x + 48}" y="273" width="3" height="18" fill="#6B5B4E"/>`).join('');
+    },
+    plant() {
+      return `<path d="M354 262 h30 l-4 26 h-22 Z" fill="#C8693E"/><g fill="#3E9A4A"><ellipse cx="362" cy="246" rx="6" ry="16" transform="rotate(-25 362 246)"/><ellipse cx="376" cy="244" rx="6" ry="17" transform="rotate(22 376 244)"/><ellipse cx="369" cy="240" rx="6" ry="20"/></g>`;
+    },
+    kast() {
+      const books = ['#E2574C', '#4C7FD8', '#F2C537', '#4FB858', '#9B6BD3', '#F28C28'];
+      let s = `<rect x="316" y="104" width="68" height="96" rx="3" fill="#A5713F"/><rect x="320" y="108" width="60" height="88" fill="#8A5A2F"/>`;
+      [108, 140, 172].forEach((y, r) => {
+        let x = 322;
+        for (let i = 0; i < 6 && x < 374; i++) { const w = 6 + ((i + r) % 3) * 2, h = 20 + ((i * 3 + r) % 4) * 2; s += `<rect x="${x}" y="${y + 28 - h}" width="${w}" height="${h}" fill="${books[(i + r * 2) % 6]}"/>`; x += w + 2; }
+        s += `<rect x="320" y="${y + 28}" width="60" height="4" fill="#A5713F"/>`;
+      });
+      return s;
+    },
+    klok() {
+      return `<circle cx="352" cy="62" r="17" fill="#fff" stroke="#33415C" stroke-width="3.5"/><line x1="352" y1="62" x2="352" y2="50" stroke="#33415C" stroke-width="3" stroke-linecap="round"/><line x1="352" y1="62" x2="360" y2="66" stroke="#D9473B" stroke-width="2.5" stroke-linecap="round"/><circle cx="352" cy="62" r="2" fill="#33415C"/>`;
+    },
+    slinger() {
+      const cols = ['#E84A3F', '#F6D23C', '#3F8FDB', '#4FB858', '#9B6BD3'];
+      const y = x => 4 + 14 * Math.sin(Math.PI * (x % 200) / 200);
+      let s = `<path d="M0 4 Q100 32 200 4 Q300 32 400 4" fill="none" stroke="#6B5B4E" stroke-width="1.5"/>`;
+      for (let x = 14, i = 0; x < 400; x += 26, i++) s += `<path d="M${x - 8} ${y(x - 8)} L${x + 8} ${y(x + 8)} L${x} ${y(x) + 16} Z" fill="${cols[i % 5]}"/>`;
+      return s;
+    },
+    tekeningen() {
+      return `<g transform="rotate(-4 166 160)"><rect x="150" y="138" width="32" height="40" fill="#fff" stroke="#C9C2B6"/><circle cx="166" cy="152" r="7" fill="#F6D23C"/><path d="M154 172 q12 -10 24 0" stroke="#4FB858" stroke-width="3" fill="none"/></g>
+        <g transform="rotate(3 210 160)"><rect x="194" y="138" width="32" height="40" fill="#fff" stroke="#C9C2B6"/><path d="M200 162 l10 -10 l10 10 Z" fill="#E2574C"/><rect x="202" y="162" width="16" height="12" fill="#F2C537"/></g>
+        <g transform="rotate(-2 254 160)"><rect x="238" y="138" width="32" height="40" fill="#fff" stroke="#C9C2B6"/><path d="M254 170 l-9 -9 a5 5 0 0 1 9 -6 a5 5 0 0 1 9 6 Z" fill="#E84A8A"/></g>`;
+    },
+    wereldbol() {
+      return `<rect x="26" y="155" width="18" height="5" rx="2" fill="#6B5B4E"/><rect x="33" y="148" width="4" height="8" fill="#6B5B4E"/><circle cx="35" cy="138" r="11" fill="#6EC1E4" stroke="#6B5B4E" stroke-width="1.5"/><path d="M29 132 q4 -3 7 1 q-1 4 -5 4 Z M37 141 q4 -1 5 3 q-3 3 -6 1 Z" fill="#4FB858"/>`;
+    },
+    dier(v) {
+      if (v === 'hamster') return `<ellipse cx="88" cy="150" rx="15" ry="10" fill="#E0A458"/><ellipse cx="92" cy="153" rx="8" ry="5" fill="#F7E2C2"/><circle cx="80" cy="141" r="4" fill="#D18E45"/><circle cx="95" cy="141" r="4" fill="#D18E45"/><circle cx="98" cy="148" r="1.8" fill="#2B1D14"/><circle cx="103" cy="151" r="1.5" fill="#E07A8A"/>`;
+      if (v === 'vis') return `<rect x="56" y="132" width="58" height="28" rx="4" fill="#BEE6F7" stroke="#7FB7D1" stroke-width="2"/><line x1="58" x2="112" y1="137" y2="137" stroke="#7FB7D1"/><ellipse cx="84" cy="148" rx="9" ry="6" fill="#F28C28"/><path d="M75 148 l-7 -5 v10 Z" fill="#F28C28"/><circle cx="88" cy="146" r="1.4" fill="#2B1D14"/><ellipse cx="102" cy="153" rx="5" ry="3.5" fill="#F6D23C"/><circle cx="96" cy="140" r="1.5" fill="none" stroke="#fff"/><path d="M62 160 q2 -10 4 0 M106 160 q2 -12 4 0" stroke="#3E9A4A" stroke-width="2" fill="none"/>`;
+      if (v === 'konijn') return `<ellipse cx="86" cy="151" rx="14" ry="9" fill="#F7F4EF" stroke="#CFC6BC" stroke-width="1.5"/><circle cx="99" cy="145" r="7" fill="#F7F4EF" stroke="#CFC6BC" stroke-width="1.5"/><ellipse cx="96" cy="131" rx="2.8" ry="9" fill="#F7F4EF" stroke="#CFC6BC" stroke-width="1.5"/><ellipse cx="102" cy="132" rx="2.8" ry="9" fill="#F7F4EF" stroke="#CFC6BC" stroke-width="1.5"/><circle cx="101" cy="144" r="1.4" fill="#2B1D14"/><circle cx="73" cy="149" r="3" fill="#fff"/>`;
+      if (v === 'schildpad') return `<path d="M72 157 a14 11 0 0 1 28 0 Z" fill="#5E9E4B" stroke="#3F7533" stroke-width="1.5"/><path d="M80 157 l3 -7 h6 l3 7 M86 150 v-4" stroke="#3F7533" stroke-width="1.2" fill="none"/><circle cx="104" cy="153" r="4.5" fill="#8BBF6A"/><circle cx="105.5" cy="152" r="1" fill="#2B1D14"/><rect x="76" y="156" width="5" height="4" rx="1" fill="#8BBF6A"/><rect x="92" y="156" width="5" height="4" rx="1" fill="#8BBF6A"/>`;
+      return '';
+    }
+  };
+
+  function part(key, html, isPreview) {
+    const cls = isPreview ? 'pv' : key === state.popKey ? 'pop' : '';
+    return `<g data-part="${key}" class="${cls}">${html}</g>`;
+  }
+  function render() {
+    const d = state.design, pv = state.preview || {};
+    const val = id => pv.step === id ? pv.opt : d[id];
+    const isPv = id => pv.step === id;
+    let s = `<defs><clipPath id="win"><rect x="26" y="38" width="84" height="92"/></clipPath></defs>`;
+    s += part('muur', DRAW.muur(val('muur')), isPv('muur'));
+    s += part('vloer', DRAW.vloer(val('vloer')), isPv('vloer'));
+    s += part('raam', DRAW.raam(val('raam')), isPv('raam'));
+    s += DRAW.kastje();
+    s += part('bord', DRAW.bord(val('bord')), isPv('bord'));
+    const deco = new Set(state.deco);
+    if (pv.step === 'deco') deco.add(pv.opt);
+    ['slinger', 'tekeningen', 'kast', 'klok', 'wereldbol', 'plant'].forEach(k => {
+      if (deco.has(k)) s += part(k, DRAW[k](), pv.step === 'deco' && pv.opt === k);
+    });
+    if (val('dier')) s += part('dier', DRAW.dier(val('dier')), isPv('dier'));
+    s += part('tafels', DRAW.tafels(val('tafels')), isPv('tafels'));
+    $('#scene').innerHTML = s;
+    state.popKey = null;
+  }
+
+  // ---------- UI ----------
+  const panels = ['#pStart', '#pPick', '#pQ', '#pDone'];
+  const show = id => panels.forEach(p => { $(p).hidden = p !== id; });
+  function counters() {
+    $('#starCount').textContent = state.stars;
+    $('#klasCount').textContent = state.klassen;
+    $('#soundBtn').textContent = Sommen.soundOn ? '🔊' : '🔇';
+  }
+  function paintSteps() {
+    $('#steps').innerHTML = STEPS.map((st, i) =>
+      `<span class="step ${i < state.stepIdx || state.final ? 'ok' : i === state.stepIdx ? 'now' : ''}">${st.label}</span>`).join('');
+  }
+
+  const quiz = Sommen.quiz({ root: $('#quiz'), level: () => state.level, onSolved });
+
+  function showPick() {
+    const st = STEPS[state.stepIdx];
+    state.preview = null;
+    render(); paintSteps();
+    $('#pickTitle').textContent = st.title;
+    const entries = Object.entries(st.opts);
+    $('#opts').className = 'opts' + (entries.length > 4 ? ' three' : '');
+    $('#opts').innerHTML = entries.map(([k, o]) => {
+      const done = st.multi && state.deco.has(k);
+      const ico = o.color ? `<span class="sw" style="background:${o.color}"></span>` : `<span class="ico" aria-hidden="true">${o.icon}</span>`;
+      return `<button class="opt" data-opt="${k}" ${done ? 'disabled' : ''}>${ico}<span>${o.name}</span></button>`;
+    }).join('');
+    $('#pickIntro').textContent = st.multi ? 'Kies een ding. Voor elk ding krijg je een som.' : 'Tik op wat jij het mooist vindt.';
+    const n = state.deco.size;
+    $('#pickNote').hidden = $('#decoDone').hidden = !st.multi;
+    $('#decoDone').disabled = n < 2;
+    $('#pickNote').textContent = n < 2 ? `Kies minstens 2 dingen. (${n} van 2)` : n === 6 ? 'Alles hangt er! Wat een mooie klas.' : 'Mooi! Nog meer, of ben je klaar?';
+    show('#pPick');
+  }
+
+  function choose(opt) {
+    const st = STEPS[state.stepIdx];
+    state.preview = { step: st.id, opt };
+    render();
+    $('#qTitle').textContent = `${st.label}: ${st.opts[opt].name}`;
+    state.roundQs++;
+    show('#pQ');
+    quiz.ask();
+  }
+
+  function onSolved(firstTry) {
+    if (firstTry) { state.stars++; state.roundStars++; store.set('stars', state.stars); counters(); }
+    const { step, opt } = state.preview;
+    if (step === 'deco') { state.deco.add(opt); state.popKey = opt; }
+    else { state.design[step] = opt; state.popKey = step; }
+    state.preview = null;
+    render();
+    Sommen.tones([660, 880, 1046], .08);
+    setTimeout(() => {
+      if (step === 'deco') return showPick();
+      nextStep();
+    }, 800);
+  }
+
+  function nextStep() {
+    state.stepIdx++;
+    if (state.stepIdx >= STEPS.length) return finish();
+    showPick();
+  }
+
+  function finish() {
+    state.final = true;
+    state.klassen++; store.set('klassen', state.klassen);
+    counters(); paintSteps(); render();
+    Sommen.tones([523, 659, 784, 1046], .14);
+    $('#roundStars').textContent = '⭐'.repeat(state.roundStars) || '🏫';
+    $('#roundText').textContent = `Je had ${state.roundStars} van de ${state.roundQs} sommen in één keer goed.`;
+    show('#pDone');
+    confetti();
+  }
+
+  function confetti() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const colors = ['#2F54B5', '#FFD84D', '#E2574C', '#4FB858', '#9B6BD3'];
+    for (let i = 0; i < 50; i++) {
+      const c = document.createElement('span');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = pick(colors);
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      c.style.animationDelay = Math.random() * .6 + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 5000);
+    }
+  }
+
+  function startRound() {
+    Object.assign(state, { stepIdx: -1, design: {}, deco: new Set(), preview: null, final: false, roundStars: 0, roundQs: 0 });
+    Sommen.tones([440, 554], .1);
+    nextStep();
+  }
+
+  function goStart() {
+    Object.assign(state, { stepIdx: -1, design: {}, deco: new Set(), preview: null, final: false });
+    render(); paintSteps();
+    $('#levels').innerHTML = Object.entries(Sommen.LEVELS).map(([k, l]) =>
+      `<button class="level" data-level="${k}" aria-pressed="${+k === state.level}">${l.name}<small>${l.sub}</small></button>`).join('');
+    show('#pStart');
+  }
+
+  // ---------- Events ----------
+  $('#levels').addEventListener('click', e => {
+    const b = e.target.closest('.level'); if (!b) return;
+    state.level = +b.dataset.level; store.set('level', state.level);
+    document.querySelectorAll('.level').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  $('#opts').addEventListener('click', e => { const b = e.target.closest('.opt'); if (b && !b.disabled) choose(b.dataset.opt); });
+  $('#decoDone').addEventListener('click', nextStep);
+  $('#backBtn').addEventListener('click', showPick);
+  $('#startBtn').addEventListener('click', startRound);
+  $('#againBtn').addEventListener('click', startRound);
+  $('#levelBtn').addEventListener('click', goStart);
+  $('#sayBtn').addEventListener('click', () => quiz.speak());
+  $('#soundBtn').addEventListener('click', () => { Sommen.soundOn = !Sommen.soundOn; store.set('sound', Sommen.soundOn); counters(); });
+
+  counters();
+  goStart();
+})();
+</script>
+</body>
+</html>
