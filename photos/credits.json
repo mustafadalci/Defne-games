@@ -1,0 +1,72 @@
+[
+ {
+  "id": "haaland",
+  "player": "Erling Haaland",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Erling_Haaland_Morocco_v_Norway_7_June_2026-51.jpg"
+ },
+ {
+  "id": "messi",
+  "player": "Lionel Messi",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg"
+ },
+ {
+  "id": "benzema",
+  "player": "Karim Benzema",
+  "author": "Zack",
+  "license": "CC BY 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Karim_Benzema_Pick.jpg"
+ },
+ {
+  "id": "salah",
+  "player": "Mohamed Salah",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Mohamed_Salah_Argentina_v_Egypt_7_July_2026-163_(cropped).jpg"
+ },
+ {
+  "id": "mbappe",
+  "player": "Kylian Mbappé",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Kylian_Mbappe_France_v_Senegal_16_June_2026-391_(cropped).jpg"
+ },
+ {
+  "id": "kenan",
+  "player": "Kenan Yıldız",
+  "author": "Original: mlsz.hu – the official website of the Hungarian Football Federation / Derivative work: Danyele",
+  "license": "Attribution",
+  "source": "https://commons.wikimedia.org/wiki/File:Kenan_Y%C4%B1ld%C4%B1z_in_the_international_match_(March_2025)_(cropped).jpg"
+ },
+ {
+  "id": "arda",
+  "player": "Arda Güler",
+  "author": "LawEnthusiast",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Arda_G%C3%BCler_2025.jpg"
+ },
+ {
+  "id": "ronaldo",
+  "player": "Cristiano Ronaldo",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo_Croatia_v_Portugal_2_July_2026-075_(cropped).jpg"
+ },
+ {
+  "id": "nico",
+  "player": "Nico Williams",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Nico_Williams_Argentina_v_Spain_19_July_2026-196_(cropped).jpg"
+ },
+ {
+  "id": "yamal",
+  "player": "Lamine Yamal",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Lamine_Yamal_France_v_Spain_7.24.26-144.jpg"
+ }
+]
