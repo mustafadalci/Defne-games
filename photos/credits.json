@@ -68,5 +68,40 @@
   "author": "Bryan Berlin",
   "license": "CC BY-SA 4.0",
   "source": "https://commons.wikimedia.org/wiki/File:Lamine_Yamal_France_v_Spain_7.24.26-144.jpg"
+ },
+ {
+  "id": "vandijk",
+  "player": "Virgil van Dijk",
+  "author": "Ailura",
+  "license": "CC BY-SA 3.0 at",
+  "source": "https://commons.wikimedia.org/wiki/File:20160604_AUT_NED_8876_(cropped).jpg"
+ },
+ {
+  "id": "bellingham",
+  "player": "Jude Bellingham",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Jude_Bellingham_England_v_Ghana_23_June_2026-061_(cropped).jpg"
+ },
+ {
+  "id": "vinicius",
+  "player": "Vinícius Júnior",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Vin%C3%ADcius_J%C3%BAnior_Brazil_V_Morocco_13_June_2026-207_(cropped).jpg"
+ },
+ {
+  "id": "kane",
+  "player": "Harry Kane",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Harry_Kane_England_v_Ghana_23_June_2026-024_(cropped).jpg"
+ },
+ {
+  "id": "neymar",
+  "player": "Neymar",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Neymar_Junior_Brazil_V_Morocco_13_June_2026-40.jpg"
  }
 ]
