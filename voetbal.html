@@ -84,6 +84,10 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
 .slot.new { animation: land .8s cubic-bezier(.3, 1.5, .5, 1) both; }
 @keyframes land { from { transform: scale(1.6) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
 
+.credits { font-size: .85rem; color: var(--muted); }
+.credits summary { cursor: pointer; font-weight: 800; }
+.credits ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; }
+.credits a { color: inherit; overflow-wrap: anywhere; }
 .levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .level { border: 3px solid var(--line); background: #fff; border-radius: 16px; padding: 10px 6px; font-family: var(--display); font-weight: 600; font-size: 1.2rem; }
 .level small { display: block; font-family: var(--body); font-size: .78rem; color: var(--muted); font-weight: 800; }
@@ -165,6 +169,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
       <div class="meter" aria-hidden="true"><span id="meter" style="width:0%"></span></div>
     </div>
     <div class="album" id="album"></div>
+    <details class="credits" id="credits" hidden><summary>Foto's</summary><ul id="creditList"></ul></details>
     <p class="intro">Kies je niveau:</p>
     <div class="levels" id="levels"></div>
     <div class="row">
@@ -415,6 +420,13 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
 
   showAlbum();
   photosReady.then(() => { if (!$('#vAlbum').hidden && Object.keys(PHOTOS).length) renderAlbum(); });
+  fetch('photos/credits.json').then(r => r.ok ? r.json() : []).then(list => {
+    if (!list.length) return;
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    $('#creditList').innerHTML = list.map(c =>
+      `<li>${esc(c.player)}: <a href="${esc(c.source)}" target="_blank" rel="noopener">${esc(c.author)}</a>${c.license ? ', ' + esc(c.license) : ''} (Wikimedia Commons)</li>`).join('');
+    $('#credits').hidden = false;
+  }).catch(() => {});
 })();
 </script>
 </body>
