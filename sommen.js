@@ -1,5 +1,6 @@
 /* Sommen: shared Dutch math questions + answer pad for Defne's games.
-   Usage: const quiz = Sommen.quiz({ root, level: () => 2, onSolved: firstTry => {} }); quiz.ask(); */
+   Usage: const quiz = Sommen.quiz({ root, level: () => 2, onSolved: (firstTry, revealed) => {} }); quiz.ask();
+   revealed is true when the pad had to show an answer after three wrong tries. */
 (function () {
   const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -243,7 +244,7 @@
       } else {
         api.tones([523, 659, 784]);
         feedback(pick(['Goed zo!', 'Super!', 'Knap gedaan!', 'Helemaal goed!', 'Top!']) + (wrong === 0 ? ' ⭐' : ''), 'good');
-        setTimeout(() => onSolved(wrong === 0), 900);
+        setTimeout(() => onSolved(wrong === 0, false), 900);
       }
     }
     function wrongAnswer(i) {
@@ -295,7 +296,7 @@
       if (+b.dataset.n === q.answers[0]) { done[0] = 1; b.classList.add('right'); finish(false); }
       else { b.disabled = true; wrongAnswer(0); }
     });
-    next.addEventListener('click', () => { next.hidden = true; onSolved(false); });
+    next.addEventListener('click', () => { next.hidden = true; onSolved(false, true); });
     document.addEventListener('keydown', e => {
       if (!root.offsetParent || keys.hidden || locked) return;
       if (/^[0-9]$/.test(e.key)) press(e.key);
@@ -309,7 +310,7 @@
 
     return {
       ask() {
-        q = make(level());
+        q = api.make(level());
         vals = q.answers.map(() => ''); done = q.answers.map(() => 0); tries = q.answers.map(() => 0);
         active = 0; wrong = 0; locked = false;
         $('.sm-intro').textContent = q.intro;

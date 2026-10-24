@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voetbalkaarten van Defne</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="theme-color" content="#14532D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Defne">
+<script src="pwa.js" defer></script>
+<style>
+/* Layout: a mowed football pitch; the sticker album as the home view, the pack + sum side by side when playing. */
+:root {
+  --pitch: #1D7A3F;
+  --pitch-light: #23884A;
+  --chalk: rgba(255, 255, 255, .55);
+  --ink: #17261D;
+  --muted: #5B6B60;
+  --card: #FFFFFF;
+  --line: #D8E3DB;
+  --gold: #E8B931;
+  --gold-dark: #B88A12;
+  --good: #23884A;
+  --red: #D9473B;
+  --display: "Fredoka", "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  /* answer pad (sommen.js) */
+  --q-ink: var(--ink); --q-muted: var(--muted); --q-soft: #EEF5F0; --q-card: #fff; --q-line: var(--line); --q-faint: #B6C6BA;
+  --q-accent: #1F5FBF; --q-good: var(--good); --q-good-dark: #17663A; --q-good-soft: #E1F3E8; --q-bad: var(--red); --q-display: var(--display);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  margin: 0; font-family: var(--body); color: var(--ink);
+  background-color: var(--pitch);
+  background-image:
+    radial-gradient(circle at 50% 120px, transparent 88px, var(--chalk) 89px, var(--chalk) 92px, transparent 93px),
+    linear-gradient(transparent 118px, var(--chalk) 118px, var(--chalk) 121px, transparent 121px),
+    repeating-linear-gradient(90deg, var(--pitch) 0 70px, var(--pitch-light) 70px 140px);
+  background-attachment: scroll;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 28px;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+
+.app { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--card); border-radius: 18px; padding: 10px 16px; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
+.brand { font-family: var(--display); font-weight: 700; font-size: 1.55rem; color: var(--pitch); }
+.brand small { display: block; font-family: var(--body); font-size: .8rem; color: var(--muted); font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.home { color: inherit; text-decoration: none; padding-right: 2px; }
+.counters { display: flex; gap: 8px; align-items: center; }
+.pill { font-family: var(--display); font-weight: 600; font-size: 1.15rem; background: #EEF5F0; border-radius: 999px; padding: 6px 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.icon-btn { border: 0; background: #EEF5F0; border-radius: 999px; width: 44px; height: 44px; font-size: 1.3rem; flex: none; }
+
+.panel { background: var(--card); border-radius: 24px; padding: 20px; box-shadow: 0 6px 0 rgba(0,0,0,.18); display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.hello { font-family: var(--display); font-weight: 700; font-size: 1.9rem; margin: 0; text-wrap: balance; }
+.lead { font-size: 1.12rem; margin: 0; line-height: 1.5; }
+.intro { font-size: 1.05rem; font-weight: 800; color: var(--muted); margin: 0; }
+.task { font-family: var(--display); font-weight: 700; font-size: 1.35rem; color: var(--pitch); display: flex; align-items: center; justify-content: space-between; gap: 8px; text-wrap: balance; }
+.center { text-align: center; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+.album-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; }
+.meter { flex: 1 1 200px; height: 16px; border-radius: 999px; background: #E5EEE8; overflow: hidden; }
+.meter span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), #F7D86A); border-radius: 999px; transition: width .6s; }
+.album { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .album { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+.slot { border: 0; padding: 0; background: none; border-radius: 12px; position: relative; aspect-ratio: 5 / 7; max-width: 100%; }
+.slot svg { width: 100%; height: 100%; display: block; }
+.slot.empty { cursor: default; }
+.slot.empty svg { filter: grayscale(1) opacity(.28); }
+.slot.empty::after { content: "?"; position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 2.6rem; color: #8FA396; }
+.slot.new { animation: land .8s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes land { from { transform: scale(1.6) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.level { border: 3px solid var(--line); background: #fff; border-radius: 16px; padding: 10px 6px; font-family: var(--display); font-weight: 600; font-size: 1.2rem; }
+.level small { display: block; font-family: var(--body); font-size: .78rem; color: var(--muted); font-weight: 800; }
+.level[aria-pressed="true"] { border-color: var(--pitch); background: #E8F4EC; color: #14532D; }
+
+.big-btn { border: 0; border-radius: 18px; padding: 15px 24px; font-family: var(--display); font-weight: 700; font-size: 1.45rem; background: var(--gold); color: #3A2A00; box-shadow: 0 5px 0 var(--gold-dark); }
+.big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--gold-dark); }
+.big-btn.green { background: var(--good); color: #fff; box-shadow: 0 5px 0 #17663A; }
+.link-btn { border: 0; background: none; color: var(--muted); font-weight: 800; text-decoration: underline; padding: 6px; }
+
+/* Playing */
+.play { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+@media (max-width: 800px) { .play { grid-template-columns: minmax(0, 1fr); } }
+.stage { display: grid; place-items: center; min-height: 340px; perspective: 1000px; position: relative; }
+@media (max-width: 800px) { .stage { min-height: 0; } }
+.pack {
+  border: 0; width: min(66%, 230px); aspect-ratio: 5 / 7; border-radius: 16px; position: relative;
+  background:
+    linear-gradient(115deg, transparent 30%, rgba(255,255,255,.55) 45%, transparent 60%) 0 0 / 250% 100%,
+    linear-gradient(160deg, #7B3FE4, #2B59D9 55%, #14B3A6);
+  box-shadow: 0 10px 0 rgba(0,0,0,.25), inset 0 0 0 5px rgba(255,255,255,.35);
+  color: #fff; font-family: var(--display); font-weight: 700; font-size: 1.5rem; text-shadow: 0 2px 0 rgba(0,0,0,.25);
+  display: grid; place-items: center; text-align: center; padding: 12px;
+  animation: shimmer 2.4s linear infinite, bob 1.6s ease-in-out infinite;
+}
+.pack .ball { display: block; font-size: 3.4rem; margin-bottom: 6px; }
+.pack .tap { display: block; font-family: var(--body); font-size: .95rem; font-weight: 800; margin-top: 8px; opacity: .9; }
+@keyframes shimmer { to { background-position: -250% 0, 0 0; } }
+@keyframes bob { 50% { transform: translateY(-8px) rotate(1.5deg); } }
+.pack.open { animation: rip .5s ease-in forwards; }
+@keyframes rip { 40% { transform: scale(1.1) rotate(-4deg); } to { transform: scale(.2) rotate(20deg); opacity: 0; } }
+
+.big-card { width: min(70%, 250px); aspect-ratio: 5 / 7; max-width: 100%; position: relative; animation: rise .6s cubic-bezier(.3, 1.4, .5, 1) both; }
+.big-card svg { width: 100%; height: 100%; display: block; filter: grayscale(1) brightness(.85); transition: filter .8s; }
+.big-card .lock { position: absolute; inset: 0; display: grid; place-items: center; font-size: 3.6rem; transition: transform .5s, opacity .5s; }
+.big-card.won svg { filter: none; }
+.big-card.won .lock { transform: scale(2.2) rotate(25deg); opacity: 0; }
+.big-card.won { animation: rise .6s both, cheer .7s .1s cubic-bezier(.3, 1.6, .5, 1); }
+.big-card.won::after { content: ""; position: absolute; inset: 0; border-radius: 14px; background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%) 0 0 / 300% 100%; animation: shine 1.2s .3s ease-out both; pointer-events: none; }
+.big-card.lost { animation: flyaway 1s ease-in forwards; }
+@keyframes rise { from { transform: translateY(60px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cheer { 50% { transform: scale(1.12) rotate(-3deg); } }
+@keyframes shine { from { background-position: 150% 0; } to { background-position: -150% 0; } }
+@keyframes flyaway { 20% { transform: rotate(-6deg); } to { transform: translate(120px, -500px) rotate(40deg) scale(.5); opacity: 0; } }
+@media (max-width: 800px) { .big-card, .pack { width: min(46%, 170px); } }
+
+.confetti { position: fixed; top: -20px; width: 12px; height: 16px; border-radius: 3px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+@media (max-width: 800px) {
+  .brand { font-size: 1.2rem; white-space: nowrap; } .brand small { display: none; }
+  .top { padding: 8px 12px; } .pill { font-size: 1rem; padding: 4px 10px; } .icon-btn { width: 38px; height: 38px; font-size: 1.1rem; }
+  .app { gap: 10px; } .panel { padding: 16px; gap: 10px; } .task { font-size: 1.2rem; } .hello { font-size: 1.6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .confetti { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><a href="index.html" class="home" aria-label="Alle spelletjes">‹</a> Voetbalkaarten<small>Rekenen &amp; verzamelen</small></div>
+    <div class="counters">
+      <span class="pill" title="Kaarten in je album">🃏 <span id="cardCount">0</span>/10</span>
+      <span class="pill" title="Sterren">⭐ <span id="starCount">0</span></span>
+      <button class="icon-btn" id="soundBtn" aria-label="Geluid aan of uit">🔊</button>
+    </div>
+  </header>
+
+  <!-- Album (home) -->
+  <section id="vAlbum" class="panel">
+    <div class="album-head">
+      <div>
+        <p class="hello" id="albumTitle">Het album van Defne</p>
+        <p class="intro" id="albumIntro">Open een pakje. Reken goed, dan is de kaart van jou!</p>
+      </div>
+      <div class="meter" aria-hidden="true"><span id="meter" style="width:0%"></span></div>
+    </div>
+    <div class="album" id="album"></div>
+    <p class="intro">Kies je niveau:</p>
+    <div class="levels" id="levels"></div>
+    <div class="row">
+      <button class="big-btn" id="packBtn">Open een pakje! ⚽</button>
+      <button class="big-btn green" id="resetBtn" hidden>Nieuw album beginnen</button>
+    </div>
+  </section>
+
+  <!-- Playing -->
+  <section id="vPlay" class="play" hidden>
+    <div class="stage" id="stage"></div>
+    <div class="panel">
+      <div id="pPack">
+        <p class="task">Er zit een kaart in dit pakje!</p>
+        <p class="lead">Tik op het pakje om het open te maken.</p>
+      </div>
+      <div id="pQ" hidden style="display:flex;flex-direction:column;gap:10px">
+        <div class="task"><span id="qTitle"></span>
+          <button class="icon-btn" id="sayBtn" aria-label="Lees de som voor">🗣️</button></div>
+        <div id="quiz"></div>
+      </div>
+      <div id="pWon" hidden style="display:flex;flex-direction:column;gap:14px">
+        <p class="hello center" id="wonTitle"></p>
+        <p class="lead center" id="wonText"></p>
+        <div class="row"><button class="big-btn green" id="toAlbumBtn">In mijn album 📒</button></div>
+      </div>
+      <div id="pLost" hidden style="display:flex;flex-direction:column;gap:14px">
+        <p class="hello center" id="lostTitle"></p>
+        <p class="lead center">Geen zorgen, de kaart komt later terug. Probeer een nieuw pakje!</p>
+        <div class="row"><button class="big-btn" id="againBtn">Nieuw pakje ⚽</button></div>
+        <div class="row"><button class="link-btn" id="backBtn">Naar mijn album</button></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="sommen.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('voetbal-' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('voetbal-' + k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  // ---------- Countries: kit colours and simple flags (drawn in a 36 x 24 box) ----------
+  const COUNTRY = {
+    NOR: { name: 'Noorwegen', bg: ['#B5122E', '#5E0716'], kit: '#C8102E', trim: '#fff',
+      flag: '<rect width="36" height="24" fill="#BA0C2F"/><rect x="10" width="7" height="24" fill="#fff"/><rect y="8.5" width="36" height="7" fill="#fff"/><rect x="11.75" width="3.5" height="24" fill="#00205B"/><rect y="10.25" width="36" height="3.5" fill="#00205B"/>' },
+    ARG: { name: 'Argentinië', bg: ['#4F8FCF', '#1D4F86'], kit: '#75AADB', stripes: '#fff', trim: '#1D2B5A',
+      flag: '<rect width="36" height="24" fill="#75AADB"/><rect y="8" width="36" height="8" fill="#fff"/><circle cx="18" cy="12" r="3" fill="#F6B40E"/>' },
+    FRA: { name: 'Frankrijk', bg: ['#1C3F94', '#0B1E4F'], kit: '#1B2E6B', trim: '#fff',
+      flag: '<rect width="12" height="24" fill="#0055A4"/><rect x="12" width="12" height="24" fill="#fff"/><rect x="24" width="12" height="24" fill="#EF4135"/>' },
+    EGY: { name: 'Egypte', bg: ['#C1121F', '#5C0A10'], kit: '#CE1126', trim: '#111',
+      flag: '<rect width="36" height="8" fill="#CE1126"/><rect y="8" width="36" height="8" fill="#fff"/><rect y="16" width="36" height="8" fill="#111"/><circle cx="18" cy="12" r="2.6" fill="#C09300"/>' },
+    TUR: { name: 'Turkije', bg: ['#E30A17', '#7A050C'], kit: '#E30A17', trim: '#fff',
+      flag: '<rect width="36" height="24" fill="#E30A17"/><circle cx="14" cy="12" r="6" fill="#fff"/><circle cx="15.6" cy="12" r="4.8" fill="#E30A17"/><path d="M20.5 12 l4.6 -1.5 -2.8 3.9 v-4.8 l2.8 3.9 Z" fill="#fff"/>' },
+    POR: { name: 'Portugal', bg: ['#A3122A', '#4A0610'], kit: '#A3122A', trim: '#0B6B3A',
+      flag: '<rect width="14" height="24" fill="#046A38"/><rect x="14" width="22" height="24" fill="#DA291C"/><circle cx="14" cy="12" r="4.5" fill="#FFE900"/><circle cx="14" cy="12" r="2.4" fill="#DA291C"/>' },
+    ESP: { name: 'Spanje', bg: ['#C60B1E', '#5E0610'], kit: '#C60B1E', trim: '#FFC400',
+      flag: '<rect width="36" height="24" fill="#AA151B"/><rect y="6" width="36" height="12" fill="#F1BF00"/>' }
+  };
+
+  const POS = { SP: 'Spits', AV: 'Aanvaller', VL: 'Vleugelspeler', MV: 'Middenvelder' };
+  const PLAYERS = [
+    { id: 'haaland', first: 'Erling', last: 'Haaland', c: 'NOR', pos: 'SP' },
+    { id: 'messi', first: 'Lionel', last: 'Messi', c: 'ARG', pos: 'AV' },
+    { id: 'benzema', first: 'Karim', last: 'Benzema', c: 'FRA', pos: 'SP' },
+    { id: 'salah', first: 'Mohamed', last: 'Salah', c: 'EGY', pos: 'VL' },
+    { id: 'mbappe', first: 'Kylian', last: 'Mbappé', c: 'FRA', pos: 'SP' },
+    { id: 'kenan', first: 'Kenan', last: 'Yıldız', c: 'TUR', pos: 'VL' },
+    { id: 'arda', first: 'Arda', last: 'Güler', c: 'TUR', pos: 'MV' },
+    { id: 'ronaldo', first: 'Cristiano', last: 'Ronaldo', c: 'POR', pos: 'SP' },
+    { id: 'nico', first: 'Nico', last: 'Williams', c: 'ESP', pos: 'VL' },
+    { id: 'yamal', first: 'Lamine', last: 'Yamal', c: 'ESP', pos: 'VL' }
+  ];
+  const byId = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
+
+  // ---------- Card drawing (viewBox 0 0 200 280) ----------
+  function cardSVG(p) {
+    const k = COUNTRY[p.c], uid = 'c' + p.id + Math.random().toString(36).slice(2, 7);
+    const shirt = 'M58 96 L84 82 Q100 92 116 82 L142 96 L160 124 L140 134 L136 124 L136 186 L64 186 L64 124 L60 134 L40 124 Z';
+    const name = p.last.toUpperCase();
+    const fit = name.length > 7 ? ` textLength="150" lengthAdjust="spacingAndGlyphs"` : '';
+    const sub = `${k.name} · ${POS[p.pos]}`.toUpperCase();
+    const subFit = sub.length > 20 ? ` textLength="166" lengthAdjust="spacingAndGlyphs"` : '';
+    return `<svg viewBox="0 0 200 280" role="img" aria-label="Kaart van ${p.first} ${p.last}">
+      <defs>
+        <linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${k.bg[0]}"/><stop offset="1" stop-color="${k.bg[1]}"/></linearGradient>
+        <clipPath id="${uid}s"><path d="${shirt}"/></clipPath>
+      </defs>
+      <rect x="3" y="3" width="194" height="274" rx="16" fill="#E8B931"/>
+      <rect x="9" y="9" width="182" height="262" rx="12" fill="url(#${uid}g)"/>
+      <path d="M9 60 Q100 30 191 60 V9 H9 Z" fill="#fff" opacity=".08"/>
+      <circle cx="100" cy="132" r="64" fill="#fff" opacity=".08"/>
+      <text x="22" y="40" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#FFE07A">${p.pos}</text>
+      <g transform="translate(144 22)"><rect x="-2" y="-2" width="40" height="28" rx="3" fill="#fff" opacity=".9"/>${k.flag}</g>
+      <path d="${shirt}" fill="${k.kit}" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
+      ${k.stripes ? `<g clip-path="url(#${uid}s)" fill="${k.stripes}"><rect x="70" y="80" width="12" height="110"/><rect x="94" y="80" width="12" height="110"/><rect x="118" y="80" width="12" height="110"/></g>` : ''}
+      <path d="M84 82 Q100 100 116 82" fill="none" stroke="${k.trim}" stroke-width="5"/>
+      <path d="M40 124 L60 134 M160 124 L140 134" stroke="${k.trim}" stroke-width="5"/>
+      <g transform="translate(110 108) scale(.5)"><rect x="-2" y="-2" width="40" height="28" rx="3" fill="#fff"/>${k.flag}</g>
+      <circle cx="78" cy="122" r="7" fill="#fff" stroke="${k.trim}" stroke-width="2"/><path d="M74 119 l4 3 l4 -3 M78 122 v5" stroke="#333" stroke-width="1.4" fill="none"/>
+      <rect x="9" y="196" width="182" height="75" fill="#000" opacity=".22"/>
+      <text x="100" y="218" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="15" fill="#fff" opacity=".9">${p.first}</text>
+      <text x="100" y="246" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="30" fill="#fff"${fit}>${name}</text>
+      <text x="100" y="264" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="12" fill="#FFE07A" letter-spacing="1"${subFit}>${sub}</text>
+    </svg>`;
+  }
+
+  // ---------- State ----------
+  const state = {
+    level: store.get('level', 1), stars: store.get('stars', 0),
+    owned: store.get('owned', []).filter(id => byId[id]),
+    current: null, lastLost: null, newest: null
+  };
+  if (!Sommen.LEVELS[state.level]) state.level = 1;
+  Sommen.soundOn = store.get('sound', true);
+  const tones = Sommen.tones;
+
+  function counters() {
+    $('#cardCount').textContent = state.owned.length;
+    $('#starCount').textContent = state.stars;
+    $('#soundBtn').textContent = Sommen.soundOn ? '🔊' : '🔇';
+  }
+
+  function renderAlbum() {
+    $('#album').innerHTML = PLAYERS.map(p => {
+      const have = state.owned.includes(p.id);
+      return `<button class="slot ${have ? '' : 'empty'} ${p.id === state.newest ? 'new' : ''}" data-id="${p.id}" ${have ? '' : 'disabled'} aria-label="${have ? p.first + ' ' + p.last : 'Nog niet: ' + p.last}">${cardSVG(p)}</button>`;
+    }).join('');
+    const n = state.owned.length, full = n === PLAYERS.length;
+    $('#meter').style.width = (n / PLAYERS.length * 100) + '%';
+    $('#albumTitle').textContent = full ? 'Je album is vol! 🏆' : 'Het album van Defne';
+    $('#albumIntro').textContent = full ? 'Alle 10 kaarten zijn van jou. Je bent een echte kampioen!'
+      : n === 0 ? 'Open een pakje. Reken goed, dan is de kaart van jou!'
+      : `Je hebt ${n} van de 10 kaarten. Nog ${PLAYERS.length - n} te gaan!`;
+    $('#packBtn').hidden = full;
+    $('#resetBtn').hidden = !full;
+    $('#levels').innerHTML = Object.entries(Sommen.LEVELS).map(([k, l]) =>
+      `<button class="level" data-level="${k}" aria-pressed="${+k === state.level}">${l.name}<small>${l.sub}</small></button>`).join('');
+    state.newest = null;
+    counters();
+  }
+
+  function showAlbum() {
+    $('#vPlay').hidden = true; $('#vAlbum').hidden = false;
+    renderAlbum();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  const subPanels = ['#pPack', '#pQ', '#pWon', '#pLost'];
+  const showSub = id => subPanels.forEach(p => { $(p).hidden = p !== id; });
+
+  // ---------- A pack ----------
+  function openPack() {
+    const left = PLAYERS.filter(p => !state.owned.includes(p.id));
+    if (!left.length) return showAlbum();
+    const pool = left.length > 1 ? left.filter(p => p.id !== state.lastLost) : left;
+    state.current = pick(pool);
+    $('#vAlbum').hidden = true; $('#vPlay').hidden = false;
+    $('#stage').innerHTML = `<button class="pack" id="pack"><span><span class="ball">⚽</span>Defne<br>Kaarten<span class="tap">Tik om te openen</span></span></button>`;
+    showSub('#pPack');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    $('#pack').addEventListener('click', rip, { once: true });
+  }
+
+  function rip() {
+    $('#pack').classList.add('open');
+    tones([392, 523, 659], .09, 'triangle');
+    setTimeout(() => {
+      const p = state.current;
+      $('#stage').innerHTML = `<div class="big-card" id="bigCard">${cardSVG(p)}<span class="lock" aria-hidden="true">🔒</span></div>`;
+      $('#qTitle').textContent = `Reken goed, dan is ${p.last} van jou!`;
+      showSub('#pQ');
+      quiz.ask();
+    }, 450);
+  }
+
+  const quiz = Sommen.quiz({ root: $('#quiz'), level: () => state.level, onSolved });
+
+  function onSolved(firstTry, revealed) {
+    const p = state.current, card = $('#bigCard');
+    if (revealed) {
+      card.classList.add('lost');
+      tones([440, 349, 262], .16, 'triangle');
+      state.lastLost = p.id;
+      $('#lostTitle').textContent = `Oei! ${p.last} vliegt weg…`;
+      setTimeout(() => showSub('#pLost'), 600);
+      return;
+    }
+    if (firstTry) { state.stars++; store.set('stars', state.stars); }
+    state.owned.push(p.id); store.set('owned', state.owned);
+    state.newest = p.id; state.lastLost = null;
+    card.classList.add('won');
+    tones([523, 659, 784, 1046], .12);
+    $('#wonTitle').textContent = `${p.last} is van jou! ${firstTry ? '⭐' : ''}`;
+    $('#wonText').textContent = state.owned.length === PLAYERS.length
+      ? 'Dat was de laatste kaart. Je album is vol!'
+      : `Nu heb je ${state.owned.length} van de 10 kaarten.`;
+    showSub('#pWon');
+    counters();
+    confetti(state.owned.length === PLAYERS.length ? 120 : 40);
+  }
+
+  function confetti(n) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const colors = ['#E8B931', '#FFFFFF', '#1F5FBF', '#D9473B', '#23884A'];
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('span');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = pick(colors);
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      c.style.animationDelay = Math.random() * .8 + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 5500);
+    }
+  }
+
+  // ---------- Events ----------
+  $('#levels').addEventListener('click', e => {
+    const b = e.target.closest('.level'); if (!b) return;
+    state.level = +b.dataset.level; store.set('level', state.level);
+    document.querySelectorAll('.level').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  $('#packBtn').addEventListener('click', openPack);
+  $('#againBtn').addEventListener('click', openPack);
+  $('#backBtn').addEventListener('click', showAlbum);
+  $('#toAlbumBtn').addEventListener('click', showAlbum);
+  $('#resetBtn').addEventListener('click', () => { state.owned = []; store.set('owned', []); showAlbum(); });
+  $('#sayBtn').addEventListener('click', () => quiz.speak());
+  $('#soundBtn').addEventListener('click', () => { Sommen.soundOn = !Sommen.soundOn; store.set('sound', Sommen.soundOn); counters(); });
+
+  showAlbum();
+})();
+</script>
+</body>
+</html>

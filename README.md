@@ -1,9 +1,9 @@
 # Spelletjes van Defne
 
-Rekenspelletjes in eenvoudig Nederlands (groep 3/4): **Pizzeria Defne** en **Klas van Defne**.
+Rekenspelletjes in eenvoudig Nederlands (groep 3/4): **Pizzeria Defne**, **Klas van Defne** en **Voetbalkaarten**.
 
-- `index.html` – startpagina met beide spellen
-- `pizza.html`, `klas.html` – de spellen
+- `index.html` – startpagina met alle spellen
+- `pizza.html`, `klas.html`, `voetbal.html` – de spellen
 - `sommen.js` – gedeelde sommen (tot 20 / 30 / 50) en het antwoordtoetsenbord
 - `sw.js`, `pwa.js`, `manifest.webmanifest` – offline spelen en installeren als app
 
