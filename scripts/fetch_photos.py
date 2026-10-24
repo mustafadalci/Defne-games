@@ -24,6 +24,11 @@ PLAYERS = {
     "ronaldo": "Cristiano Ronaldo",
     "nico": "Nico Williams",
     "yamal": "Lamine Yamal",
+    "vandijk": "Virgil van Dijk",
+    "bellingham": "Jude Bellingham",
+    "vinicius": "Vinícius Júnior",
+    "kane": "Harry Kane",
+    "neymar": "Neymar",
 }
 UA = {"User-Agent": "DefneGames/1.0 (https://github.com/mustafadalci/Defne-games; family maths game)"}
 OUT = Path(__file__).resolve().parent.parent / "photos"

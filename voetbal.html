@@ -75,7 +75,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
 .meter { flex: 1 1 200px; height: 16px; border-radius: 999px; background: #E5EEE8; overflow: hidden; }
 .meter span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), #F7D86A); border-radius: 999px; transition: width .6s; }
 .album { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 560px) { .album { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+@media (max-width: 560px) { .album { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } }
 .slot { border: 0; padding: 0; background: none; border-radius: 12px; position: relative; aspect-ratio: 5 / 7; max-width: 100%; }
 .slot svg { width: 100%; height: 100%; display: block; }
 .slot.empty { cursor: default; }
@@ -153,7 +153,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
   <header class="top">
     <div class="brand"><a href="index.html" class="home" aria-label="Alle spelletjes">‹</a> Voetbalkaarten<small>Rekenen &amp; verzamelen</small></div>
     <div class="counters">
-      <span class="pill" title="Kaarten in je album">🃏 <span id="cardCount">0</span>/10</span>
+      <span class="pill" title="Kaarten in je album">🃏 <span id="cardCount">0</span>/<span id="cardTotal">10</span></span>
       <span class="pill" title="Sterren">⭐ <span id="starCount">0</span></span>
       <button class="icon-btn" id="soundBtn" aria-label="Geluid aan of uit">🔊</button>
     </div>
@@ -232,9 +232,15 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
       flag: '<rect width="14" height="24" fill="#046A38"/><rect x="14" width="22" height="24" fill="#DA291C"/><circle cx="14" cy="12" r="4.5" fill="#FFE900"/><circle cx="14" cy="12" r="2.4" fill="#DA291C"/>' },
     ESP: { name: 'Spanje', bg: ['#C60B1E', '#5E0610'], kit: '#C60B1E', trim: '#FFC400',
       flag: '<rect width="36" height="24" fill="#AA151B"/><rect y="6" width="36" height="12" fill="#F1BF00"/>' }
+    NED: { name: 'Nederland', kit: '#F36C21', trim: '#14213D',
+      flag: '<rect width="36" height="8" fill="#AE1C28"/><rect y="8" width="36" height="8" fill="#fff"/><rect y="16" width="36" height="8" fill="#21468B"/>' },
+    ENG: { name: 'Engeland', kit: '#F4F4F2', trim: '#1A2A57',
+      flag: '<rect width="36" height="24" fill="#fff"/><rect x="15" width="6" height="24" fill="#CE1124"/><rect y="9" width="36" height="6" fill="#CE1124"/>' },
+    BRA: { name: 'Brazilië', kit: '#FFDF00', trim: '#009C3B',
+      flag: '<rect width="36" height="24" fill="#009C3B"/><path d="M18 3 L33 12 L18 21 L3 12 Z" fill="#FFDF00"/><circle cx="18" cy="12" r="5" fill="#002776"/>' },
   };
 
-  const POS = { SP: 'Spits', AV: 'Aanvaller', VL: 'Vleugelspeler', MV: 'Middenvelder' };
+  const POS = { SP: 'Spits', AV: 'Aanvaller', VL: 'Vleugelspeler', MV: 'Middenvelder', VD: 'Verdediger' };
   // Ratings and stats are made up for the game, in the style of football trading cards.
   // Stats: SNE snelheid, SCH schieten, PAS passen, DRI dribbelen, VER verdedigen, FYS fysiek.
   const PLAYERS = [
@@ -247,7 +253,12 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
     { id: 'arda', first: 'Arda', last: 'Güler', c: 'TUR', pos: 'MV', tier: 'talent', ovr: 84, st: [77, 80, 85, 87, 45, 62] },
     { id: 'ronaldo', first: 'Cristiano', last: 'Ronaldo', c: 'POR', pos: 'SP', tier: 'icoon', ovr: 85, st: [79, 88, 75, 79, 34, 76] },
     { id: 'nico', first: 'Nico', last: 'Williams', c: 'ESP', pos: 'VL', tier: 'goud', ovr: 84, st: [91, 77, 80, 86, 40, 66] },
-    { id: 'yamal', first: 'Lamine', last: 'Yamal', c: 'ESP', pos: 'VL', tier: 'talent', ovr: 89, st: [89, 82, 85, 91, 35, 64] }
+    { id: 'yamal', first: 'Lamine', last: 'Yamal', c: 'ESP', pos: 'VL', tier: 'talent', ovr: 89, st: [89, 82, 85, 91, 35, 64] },
+    { id: 'vandijk', first: 'Virgil', last: 'van Dijk', c: 'NED', pos: 'VD', tier: 'goud', ovr: 88, st: [72, 60, 71, 72, 90, 86] },
+    { id: 'bellingham', first: 'Jude', last: 'Bellingham', c: 'ENG', pos: 'MV', tier: 'goud', ovr: 89, st: [79, 84, 84, 88, 75, 84] },
+    { id: 'vinicius', first: 'Vinícius', last: 'Vini Jr.', c: 'BRA', pos: 'VL', tier: 'goud', ovr: 89, st: [95, 84, 81, 90, 29, 69] },
+    { id: 'kane', first: 'Harry', last: 'Kane', c: 'ENG', pos: 'SP', tier: 'goud', ovr: 89, st: [65, 93, 84, 82, 49, 82] },
+    { id: 'neymar', first: 'Neymar', last: 'Neymar Jr.', c: 'BRA', pos: 'AV', tier: 'icoon', ovr: 85, st: [84, 83, 85, 90, 30, 61] }
   ];
   const STATS = ['SNE', 'SCH', 'PAS', 'DRI', 'VER', 'FYS'];
   const TIERS = {
@@ -326,6 +337,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
 
   function counters() {
     $('#cardCount').textContent = state.owned.length;
+    $('#cardTotal').textContent = PLAYERS.length;
     $('#starCount').textContent = state.stars;
     $('#soundBtn').textContent = Sommen.soundOn ? '🔊' : '🔇';
   }
@@ -338,9 +350,9 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
     const n = state.owned.length, full = n === PLAYERS.length;
     $('#meter').style.width = (n / PLAYERS.length * 100) + '%';
     $('#albumTitle').textContent = full ? 'Je album is vol! 🏆' : 'Het album van Defne';
-    $('#albumIntro').textContent = full ? 'Alle 10 kaarten zijn van jou. Je bent een echte kampioen!'
+    $('#albumIntro').textContent = full ? `Alle ${PLAYERS.length} kaarten zijn van jou. Je bent een echte kampioen!`
       : n === 0 ? 'Open een pakje. Reken goed, dan is de kaart van jou!'
-      : `Je hebt ${n} van de 10 kaarten. Nog ${PLAYERS.length - n} te gaan!`;
+      : `Je hebt ${n} van de ${PLAYERS.length} kaarten. Nog ${PLAYERS.length - n} te gaan!`;
     $('#packBtn').hidden = full;
     $('#resetBtn').hidden = !full;
     $('#levels').innerHTML = Object.entries(Sommen.LEVELS).map(([k, l]) =>
@@ -403,7 +415,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
     $('#wonTitle').textContent = `${p.last} is van jou! ${firstTry ? '⭐' : ''}`;
     $('#wonText').textContent = state.owned.length === PLAYERS.length
       ? 'Dat was de laatste kaart. Je album is vol!'
-      : `Nu heb je ${state.owned.length} van de 10 kaarten.`;
+      : `Nu heb je ${state.owned.length} van de ${PLAYERS.length} kaarten.`;
     showSub('#pWon');
     counters();
     confetti(state.owned.length === PLAYERS.length ? 120 : 40);
