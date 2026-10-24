@@ -122,7 +122,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
 
 .big-card { width: min(70%, 250px); aspect-ratio: 5 / 7; max-width: 100%; position: relative; animation: rise .6s cubic-bezier(.3, 1.4, .5, 1) both; }
 .big-card svg { width: 100%; height: 100%; display: block; filter: grayscale(1) brightness(.85); transition: filter .8s; }
-.big-card .lock { position: absolute; inset: 0; display: grid; place-items: center; font-size: 3.6rem; transition: transform .5s, opacity .5s; }
+.big-card .lock { position: absolute; inset: 0; display: grid; place-items: start center; padding-top: 24%; font-size: 3.4rem; transition: transform .5s, opacity .5s; }
 .big-card.won svg { filter: none; }
 .big-card.won .lock { transform: scale(2.2) rotate(25deg); opacity: 0; }
 .big-card.won { animation: rise .6s both, cheer .7s .1s cubic-bezier(.3, 1.6, .5, 1); }
@@ -235,18 +235,26 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
   };
 
   const POS = { SP: 'Spits', AV: 'Aanvaller', VL: 'Vleugelspeler', MV: 'Middenvelder' };
+  // Ratings and stats are made up for the game, in the style of football trading cards.
+  // Stats: SNE snelheid, SCH schieten, PAS passen, DRI dribbelen, VER verdedigen, FYS fysiek.
   const PLAYERS = [
-    { id: 'haaland', first: 'Erling', last: 'Haaland', c: 'NOR', pos: 'SP' },
-    { id: 'messi', first: 'Lionel', last: 'Messi', c: 'ARG', pos: 'AV' },
-    { id: 'benzema', first: 'Karim', last: 'Benzema', c: 'FRA', pos: 'SP' },
-    { id: 'salah', first: 'Mohamed', last: 'Salah', c: 'EGY', pos: 'VL' },
-    { id: 'mbappe', first: 'Kylian', last: 'Mbappé', c: 'FRA', pos: 'SP' },
-    { id: 'kenan', first: 'Kenan', last: 'Yıldız', c: 'TUR', pos: 'VL' },
-    { id: 'arda', first: 'Arda', last: 'Güler', c: 'TUR', pos: 'MV' },
-    { id: 'ronaldo', first: 'Cristiano', last: 'Ronaldo', c: 'POR', pos: 'SP' },
-    { id: 'nico', first: 'Nico', last: 'Williams', c: 'ESP', pos: 'VL' },
-    { id: 'yamal', first: 'Lamine', last: 'Yamal', c: 'ESP', pos: 'VL' }
+    { id: 'haaland', first: 'Erling', last: 'Haaland', c: 'NOR', pos: 'SP', tier: 'goud', ovr: 91, st: [86, 92, 70, 80, 45, 88] },
+    { id: 'messi', first: 'Lionel', last: 'Messi', c: 'ARG', pos: 'AV', tier: 'icoon', ovr: 88, st: [78, 86, 89, 91, 33, 63] },
+    { id: 'benzema', first: 'Karim', last: 'Benzema', c: 'FRA', pos: 'SP', tier: 'goud', ovr: 86, st: [76, 87, 81, 86, 39, 77] },
+    { id: 'salah', first: 'Mohamed', last: 'Salah', c: 'EGY', pos: 'VL', tier: 'goud', ovr: 89, st: [88, 87, 82, 88, 45, 75] },
+    { id: 'mbappe', first: 'Kylian', last: 'Mbappé', c: 'FRA', pos: 'SP', tier: 'goud', ovr: 91, st: [97, 90, 81, 92, 37, 77] },
+    { id: 'kenan', first: 'Kenan', last: 'Yıldız', c: 'TUR', pos: 'VL', tier: 'talent', ovr: 83, st: [85, 79, 78, 86, 35, 70] },
+    { id: 'arda', first: 'Arda', last: 'Güler', c: 'TUR', pos: 'MV', tier: 'talent', ovr: 84, st: [77, 80, 85, 87, 45, 62] },
+    { id: 'ronaldo', first: 'Cristiano', last: 'Ronaldo', c: 'POR', pos: 'SP', tier: 'icoon', ovr: 85, st: [79, 88, 75, 79, 34, 76] },
+    { id: 'nico', first: 'Nico', last: 'Williams', c: 'ESP', pos: 'VL', tier: 'goud', ovr: 84, st: [91, 77, 80, 86, 40, 66] },
+    { id: 'yamal', first: 'Lamine', last: 'Yamal', c: 'ESP', pos: 'VL', tier: 'talent', ovr: 89, st: [89, 82, 85, 91, 35, 64] }
   ];
+  const STATS = ['SNE', 'SCH', 'PAS', 'DRI', 'VER', 'FYS'];
+  const TIERS = {
+    goud: { stops: ['#FCEBAA', '#E9C462', '#B98A2C'], ink: '#3A2906', line: 'rgba(58,41,6,.35)', label: '' },
+    icoon: { stops: ['#FFFFFF', '#F3E9CC', '#D2B676'], ink: '#2E2410', line: 'rgba(46,36,16,.3)', label: 'ICOON' },
+    talent: { stops: ['#B8F5E8', '#38BFAE', '#11606B'], ink: '#05282C', line: 'rgba(5,40,44,.35)', label: 'TALENT' }
+  };
   const byId = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
 
   // ---------- Photos: photos/<id>.jpg is used when it exists, otherwise the card shows a jersey ----------
@@ -258,39 +266,51 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
     img.src = `photos/${p.id}.jpg`;
   })));
 
-  // ---------- Card drawing (viewBox 0 0 200 280) ----------
+  // ---------- Card drawing: a trading-card shield (viewBox 0 0 200 280) ----------
+  const SHIELD = 'M34 12 H74 Q100 0 126 12 H166 Q186 12 186 32 V226 Q186 242 170 249 L108 274 Q100 277 92 274 L30 249 Q14 242 14 226 V32 Q14 12 34 12 Z';
+  const SHIRT = 'M58 96 L84 82 Q100 92 116 82 L142 96 L160 124 L140 134 L136 124 L136 186 L64 186 L64 124 L60 134 L40 124 Z';
+
   function cardSVG(p) {
-    const k = COUNTRY[p.c], uid = 'c' + p.id + Math.random().toString(36).slice(2, 7);
-    const shirt = 'M58 96 L84 82 Q100 92 116 82 L142 96 L160 124 L140 134 L136 124 L136 186 L64 186 L64 124 L60 134 L40 124 Z';
+    const k = COUNTRY[p.c], t = TIERS[p.tier], uid = 'c' + p.id + Math.random().toString(36).slice(2, 7);
     const name = p.last.toUpperCase();
-    const fit = name.length > 7 ? ` textLength="150" lengthAdjust="spacingAndGlyphs"` : '';
-    const sub = `${k.name} · ${POS[p.pos]}`.toUpperCase();
-    const subFit = sub.length > 20 ? ` textLength="166" lengthAdjust="spacingAndGlyphs"` : '';
-    return `<svg viewBox="0 0 200 280" role="img" aria-label="Kaart van ${p.first} ${p.last}">
+    const fit = name.length > 8 ? ` textLength="150" lengthAdjust="spacingAndGlyphs"` : '';
+    const jersey = `<g transform="translate(66 18) scale(.62)">
+        <path d="${SHIRT}" fill="${k.kit}" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
+        ${k.stripes ? `<g clip-path="url(#${uid}j)" fill="${k.stripes}"><rect x="70" y="80" width="12" height="110"/><rect x="94" y="80" width="12" height="110"/><rect x="118" y="80" width="12" height="110"/></g>` : ''}
+        <path d="M84 82 Q100 100 116 82" fill="none" stroke="${k.trim}" stroke-width="5"/>
+        <path d="M40 124 L60 134 M160 124 L140 134" stroke="${k.trim}" stroke-width="5"/></g>`;
+    const stats = p.st.map((v, i) => {
+      const x = i < 3 ? 40 : 112, y = 204 + (i % 3) * 19;
+      return `<text x="${x}" y="${y}" font-family="Fredoka, sans-serif" font-weight="700" font-size="16">${v}</text><text x="${x + 22}" y="${y}" font-family="Nunito, sans-serif" font-weight="800" font-size="12" opacity=".85">${STATS[i]}</text>`;
+    }).join('');
+    return `<svg viewBox="0 0 200 280" role="img" aria-label="Kaart van ${p.first} ${p.last}, ${POS[p.pos]}, ${p.ovr}">
       <defs>
-        <linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${k.bg[0]}"/><stop offset="1" stop-color="${k.bg[1]}"/></linearGradient>
-        <clipPath id="${uid}s"><path d="${shirt}"/></clipPath>
+        <linearGradient id="${uid}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t.stops[0]}"/><stop offset=".55" stop-color="${t.stops[1]}"/><stop offset="1" stop-color="${t.stops[2]}"/></linearGradient>
+        <linearGradient id="${uid}f" x1="0" y1="0" x2="0" y2="1"><stop offset=".6" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+        <linearGradient id="${uid}h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-opacity="1"/><stop offset="1" stop-opacity="0"/></linearGradient>
+        <mask id="${uid}m"><rect x="60" y="16" width="128" height="146" fill="url(#${uid}f)"/><rect x="60" y="16" width="34" height="146" fill="url(#${uid}h)"/></mask>
+        <clipPath id="${uid}c"><path d="${SHIELD}"/></clipPath>
+        <clipPath id="${uid}j"><path d="${SHIRT}"/></clipPath>
       </defs>
-      <rect x="3" y="3" width="194" height="274" rx="16" fill="#E8B931"/>
-      <rect x="9" y="9" width="182" height="262" rx="12" fill="url(#${uid}g)"/>
-      <path d="M9 60 Q100 30 191 60 V9 H9 Z" fill="#fff" opacity=".08"/>
-      <circle cx="100" cy="132" r="64" fill="#fff" opacity=".08"/>
-      <text x="22" y="40" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#FFE07A">${p.pos}</text>
-      <g transform="translate(144 22)"><rect x="-2" y="-2" width="40" height="28" rx="3" fill="#fff" opacity=".9"/>${k.flag}</g>
-      ${PHOTOS[p.id] ? `<clipPath id="${uid}p"><rect x="22" y="52" width="156" height="142" rx="10"/></clipPath>
-      <rect x="22" y="52" width="156" height="142" rx="10" fill="${k.kit}"/>
-      <image href="${PHOTOS[p.id]}" x="22" y="52" width="156" height="142" preserveAspectRatio="xMidYMin slice" clip-path="url(#${uid}p)"/>
-      <rect x="22" y="52" width="156" height="142" rx="10" fill="none" stroke="#E8B931" stroke-width="3"/>` : `
-      <path d="${shirt}" fill="${k.kit}" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
-      ${k.stripes ? `<g clip-path="url(#${uid}s)" fill="${k.stripes}"><rect x="70" y="80" width="12" height="110"/><rect x="94" y="80" width="12" height="110"/><rect x="118" y="80" width="12" height="110"/></g>` : ''}
-      <path d="M84 82 Q100 100 116 82" fill="none" stroke="${k.trim}" stroke-width="5"/>
-      <path d="M40 124 L60 134 M160 124 L140 134" stroke="${k.trim}" stroke-width="5"/>
-      <g transform="translate(110 108) scale(.5)"><rect x="-2" y="-2" width="40" height="28" rx="3" fill="#fff"/>${k.flag}</g>
-      <circle cx="78" cy="122" r="7" fill="#fff" stroke="${k.trim}" stroke-width="2"/><path d="M74 119 l4 3 l4 -3 M78 122 v5" stroke="#333" stroke-width="1.4" fill="none"/>`}
-      <rect x="9" y="196" width="182" height="75" fill="#000" opacity=".22"/>
-      <text x="100" y="218" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="15" fill="#fff" opacity=".9">${p.first}</text>
-      <text x="100" y="246" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="30" fill="#fff"${fit}>${name}</text>
-      <text x="100" y="264" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="12" fill="#FFE07A" letter-spacing="1"${subFit}>${sub}</text>
+      <path d="${SHIELD}" fill="url(#${uid}g)" stroke="${t.stops[2]}" stroke-width="3"/>
+      <g clip-path="url(#${uid}c)" opacity=".18" fill="#fff">
+        <path d="M-20 120 L120 -20 L140 -20 L0 120 Z"/><path d="M40 300 L220 120 L220 150 L70 300 Z"/><path d="M-20 170 L170 -20 L180 -20 L-20 180 Z"/>
+      </g>
+      <g clip-path="url(#${uid}c)">
+        ${PHOTOS[p.id] ? `<image href="${PHOTOS[p.id]}" x="60" y="16" width="128" height="146" preserveAspectRatio="xMidYMin slice" mask="url(#${uid}m)"/>` : jersey}
+      </g>
+      <g fill="${t.ink}">
+        <text x="40" y="62" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="38">${p.ovr}</text>
+        <text x="40" y="82" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="600" font-size="17">${p.pos}</text>
+        <line x1="26" x2="54" y1="90" y2="90" stroke="${t.line}" stroke-width="1.5"/>
+        <g transform="translate(26 97) scale(.78)">${k.flag}</g>
+        <line x1="26" x2="54" y1="123" y2="123" stroke="${t.line}" stroke-width="1.5"/>
+        ${t.label ? `<text x="40" y="140" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="9" letter-spacing="1">${t.label}</text>` : ''}
+        <text x="100" y="180" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="25"${fit}>${name}</text>
+        <line x1="30" x2="170" y1="188" y2="188" stroke="${t.line}" stroke-width="1.5"/>
+        <line x1="100" x2="100" y1="193" y2="248" stroke="${t.line}" stroke-width="1.5"/>
+        ${stats}
+      </g>
     </svg>`;
   }
 
