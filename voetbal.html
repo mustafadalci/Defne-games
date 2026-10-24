@@ -244,6 +244,15 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
   ];
   const byId = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
 
+  // ---------- Photos: photos/<id>.jpg is used when it exists, otherwise the card shows a jersey ----------
+  const PHOTOS = {};
+  const photosReady = Promise.all(PLAYERS.map(p => new Promise(done => {
+    const img = new Image();
+    img.onload = () => { PHOTOS[p.id] = img.src; done(); };
+    img.onerror = done;
+    img.src = `photos/${p.id}.jpg`;
+  })));
+
   // ---------- Card drawing (viewBox 0 0 200 280) ----------
   function cardSVG(p) {
     const k = COUNTRY[p.c], uid = 'c' + p.id + Math.random().toString(36).slice(2, 7);
@@ -263,12 +272,16 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
       <circle cx="100" cy="132" r="64" fill="#fff" opacity=".08"/>
       <text x="22" y="40" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#FFE07A">${p.pos}</text>
       <g transform="translate(144 22)"><rect x="-2" y="-2" width="40" height="28" rx="3" fill="#fff" opacity=".9"/>${k.flag}</g>
+      ${PHOTOS[p.id] ? `<clipPath id="${uid}p"><rect x="22" y="52" width="156" height="142" rx="10"/></clipPath>
+      <rect x="22" y="52" width="156" height="142" rx="10" fill="${k.kit}"/>
+      <image href="${PHOTOS[p.id]}" x="22" y="52" width="156" height="142" preserveAspectRatio="xMidYMin slice" clip-path="url(#${uid}p)"/>
+      <rect x="22" y="52" width="156" height="142" rx="10" fill="none" stroke="#E8B931" stroke-width="3"/>` : `
       <path d="${shirt}" fill="${k.kit}" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
       ${k.stripes ? `<g clip-path="url(#${uid}s)" fill="${k.stripes}"><rect x="70" y="80" width="12" height="110"/><rect x="94" y="80" width="12" height="110"/><rect x="118" y="80" width="12" height="110"/></g>` : ''}
       <path d="M84 82 Q100 100 116 82" fill="none" stroke="${k.trim}" stroke-width="5"/>
       <path d="M40 124 L60 134 M160 124 L140 134" stroke="${k.trim}" stroke-width="5"/>
       <g transform="translate(110 108) scale(.5)"><rect x="-2" y="-2" width="40" height="28" rx="3" fill="#fff"/>${k.flag}</g>
-      <circle cx="78" cy="122" r="7" fill="#fff" stroke="${k.trim}" stroke-width="2"/><path d="M74 119 l4 3 l4 -3 M78 122 v5" stroke="#333" stroke-width="1.4" fill="none"/>
+      <circle cx="78" cy="122" r="7" fill="#fff" stroke="${k.trim}" stroke-width="2"/><path d="M74 119 l4 3 l4 -3 M78 122 v5" stroke="#333" stroke-width="1.4" fill="none"/>`}
       <rect x="9" y="196" width="182" height="75" fill="#000" opacity=".22"/>
       <text x="100" y="218" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="15" fill="#fff" opacity=".9">${p.first}</text>
       <text x="100" y="246" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="30" fill="#fff"${fit}>${name}</text>
@@ -401,6 +414,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
   $('#soundBtn').addEventListener('click', () => { Sommen.soundOn = !Sommen.soundOn; store.set('sound', Sommen.soundOn); counters(); });
 
   showAlbum();
+  photosReady.then(() => { if (!$('#vAlbum').hidden && Object.keys(PHOTOS).length) renderAlbum(); });
 })();
 </script>
 </body>

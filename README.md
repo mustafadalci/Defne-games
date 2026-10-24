@@ -17,3 +17,10 @@ Open de site één keer met internet. Daarna werkt alles zonder internet.
 Op iPad/iPhone: Safari → Deel → *Zet op beginscherm*. Op Android: Chrome → ⋮ → *App installeren*.
 
 Na een wijziging aan de bestanden: verhoog `VERSION` in `sw.js`.
+
+## Foto's van de voetballers
+
+Zet een foto per speler in `photos/` (liefst staand, gezicht bovenin, ca. 400×500 px):
+`haaland.jpg`, `messi.jpg`, `benzema.jpg`, `salah.jpg`, `mbappe.jpg`, `kenan.jpg`, `arda.jpg`,
+`ronaldo.jpg`, `nico.jpg`, `yamal.jpg`. Zonder foto toont de kaart een shirt.
+Deze site is openbaar: gebruik foto's met een vrije licentie (bijv. Wikimedia Commons) en vermeld de makers.
