@@ -253,7 +253,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
     { id: 'arda', first: 'Arda', last: 'Güler', c: 'TUR', pos: 'MV', tier: 'talent', ovr: 84, st: [77, 80, 85, 87, 45, 62] },
     { id: 'ronaldo', first: 'Cristiano', last: 'Ronaldo', c: 'POR', pos: 'SP', tier: 'icoon', ovr: 85, st: [79, 88, 75, 79, 34, 76] },
     { id: 'nico', first: 'Nico', last: 'Williams', c: 'ESP', pos: 'VL', tier: 'goud', ovr: 84, st: [91, 77, 80, 86, 40, 66] },
-    { id: 'yamal', first: 'Lamine', last: 'Yamal', c: 'ESP', pos: 'VL', tier: 'talent', ovr: 89, st: [89, 82, 85, 91, 35, 64] },
+    { id: 'yamal', first: 'Lamine', last: 'Yamal', c: 'ESP', pos: 'VL', tier: 'wk', ovr: 99, st: [98, 96, 97, 99, 62, 88] },
     { id: 'vandijk', first: 'Virgil', last: 'van Dijk', c: 'NED', pos: 'VD', tier: 'goud', ovr: 88, st: [72, 60, 71, 72, 90, 86] },
     { id: 'bellingham', first: 'Jude', last: 'Bellingham', c: 'ENG', pos: 'MV', tier: 'goud', ovr: 89, st: [79, 84, 84, 88, 75, 84] },
     { id: 'vinicius', first: 'Vinícius', last: 'Vini Jr.', c: 'BRA', pos: 'VL', tier: 'goud', ovr: 89, st: [95, 84, 81, 90, 29, 69] },
@@ -264,6 +264,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
   const TIERS = {
     goud: { stops: ['#FCEBAA', '#E9C462', '#B98A2C'], ink: '#3A2906', line: 'rgba(58,41,6,.35)', label: '' },
     icoon: { stops: ['#FFFFFF', '#F3E9CC', '#D2B676'], ink: '#2E2410', line: 'rgba(46,36,16,.3)', label: 'ICOON' },
+    wk: { stops: ['#5B2DB3', '#24145E', '#0B0A2A'], ink: '#FFE07A', line: 'rgba(255,224,122,.45)', label: 'WK' },
     talent: { stops: ['#B8F5E8', '#38BFAE', '#11606B'], ink: '#05282C', line: 'rgba(5,40,44,.35)', label: 'TALENT' }
   };
   const byId = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
