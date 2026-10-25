@@ -44,6 +44,7 @@ PLAYERS = {
     "musiala": "Jamal Musiala",
     "rodri": "Rodri (footballer, born 1996)",
     "lewandowski": "Robert Lewandowski",
+    "luukdejong": "Luuk de Jong",
 }
 UA = {"User-Agent": "DefneGames/1.0 (https://github.com/mustafadalci/Defne-games; family maths game)"}
 OUT = Path(__file__).resolve().parent.parent / "photos"

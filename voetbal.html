@@ -281,7 +281,8 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
     { id: 'wirtz', first: 'Florian', last: 'Wirtz', c: 'GER', pos: 'MV', tier: 'talent', ovr: 89, st: [80, 83, 89, 91, 55, 65] },
     { id: 'musiala', first: 'Jamal', last: 'Musiala', c: 'GER', pos: 'MV', tier: 'talent', ovr: 88, st: [83, 80, 82, 92, 55, 62] },
     { id: 'rodri', first: 'Rodrigo', last: 'Rodri', c: 'ESP', pos: 'MV', tier: 'goud', ovr: 90, st: [65, 80, 89, 85, 87, 85] },
-    { id: 'lewandowski', first: 'Robert', last: 'Lewandowski', c: 'POL', pos: 'SP', tier: 'icoon', ovr: 87, st: [74, 91, 79, 85, 44, 80] }
+    { id: 'lewandowski', first: 'Robert', last: 'Lewandowski', c: 'POL', pos: 'SP', tier: 'icoon', ovr: 87, st: [74, 91, 79, 85, 44, 80] },
+    { id: 'luukdejong', first: 'Luuk', last: 'de Jong', c: 'NED', pos: 'SP', tier: 'goud', ovr: 82, st: [58, 83, 70, 73, 42, 86], club: 'PSV' }
   ];
   const STATS = ['SNE', 'SCH', 'PAS', 'DRI', 'VER', 'FYS'];
   const TIERS = {
@@ -340,7 +341,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
         <line x1="26" x2="54" y1="90" y2="90" stroke="${t.line}" stroke-width="1.5"/>
         <g transform="translate(26 97) scale(.78)">${k.flag}</g>
         <line x1="26" x2="54" y1="123" y2="123" stroke="${t.line}" stroke-width="1.5"/>
-        ${t.label ? `<text x="40" y="140" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="9" letter-spacing="1">${t.label}</text>` : ''}
+        ${t.label || p.club ? `<text x="40" y="140" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="${p.club ? 12 : 9}" letter-spacing="1"${p.club ? ' fill="#ED1C24"' : ''}>${p.club || t.label}</text>` : ''}
         <text x="100" y="180" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="25"${fit}>${name}</text>
         <line x1="30" x2="170" y1="188" y2="188" stroke="${t.line}" stroke-width="1.5"/>
         <line x1="100" x2="100" y1="193" y2="248" stroke="${t.line}" stroke-width="1.5"/>
