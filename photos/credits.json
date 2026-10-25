@@ -67,7 +67,7 @@
   "player": "Lamine Yamal",
   "author": "Bryan Berlin",
   "license": "CC BY-SA 4.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Lamine_Yamal_France_v_Spain_7.24.26-144.jpg"
+  "source": "https://commons.wikimedia.org/wiki/File:Lamine_Yamal_France_v_Spain_7.24.26-142.jpg"
  },
  {
   "id": "vandijk",
@@ -103,5 +103,110 @@
   "author": "Bryan Berlin",
   "license": "CC BY-SA 4.0",
   "source": "https://commons.wikimedia.org/wiki/File:Neymar_Junior_Brazil_V_Morocco_13_June_2026-40.jpg"
+ },
+ {
+  "id": "dejong",
+  "player": "Frenkie de Jong",
+  "author": "Unknown authorUnknown author",
+  "license": "CC BY 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Frenkie_De_Jong_(2025)_(cropped).png"
+ },
+ {
+  "id": "gakpo",
+  "player": "Cody Gakpo",
+  "author": "elisfkc3",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Netherlands_v_Tunisia_2026_World_Cup_-_55373562032_(Cody_Gakpo).jpg"
+ },
+ {
+  "id": "depay",
+  "player": "Memphis Depay",
+  "author": "Derivative work: Joe Sins",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Memphis_Depay_2019.jpg"
+ },
+ {
+  "id": "hakan",
+  "player": "Hakan Çalhanoğlu",
+  "author": "Steindy (talk) 10:15, 11 April 2016 (UTC)",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:AUT_vs._TUR_2016-03-29_(342).jpg"
+ },
+ {
+  "id": "pedri",
+  "player": "Pedri",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Pedri_France_v_Spain_7.24.26-245.jpg"
+ },
+ {
+  "id": "debruyne",
+  "player": "Kevin De Bruyne",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Kevin_De_Bruyne_USMNT_v_Belgium_Mar_28_2026-64_(cropped).jpg"
+ },
+ {
+  "id": "modric",
+  "player": "Luka Modrić",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Luka_Modric_Croatia_v_Portugal_2_July_2026-055.jpg"
+ },
+ {
+  "id": "saka",
+  "player": "Bukayo Saka",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Bukayo_Saka_England_v_Ghana_23_June_2026-057_(cropped).jpg"
+ },
+ {
+  "id": "foden",
+  "player": "Phil Foden",
+  "author": "Steffen Prößdorf",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:2023-10-04_Fu%C3%9Fball,_M%C3%A4nner,_UEFA_Champions_League,_RB_Leipzig_-_Manchester_City_FC_1DX_2613,_Phil_Foden.jpg"
+ },
+ {
+  "id": "griezmann",
+  "player": "Antoine Griezmann",
+  "author": "Антон Зайцев",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:FRA-ARG_(10)_(cropped).jpg"
+ },
+ {
+  "id": "dembele",
+  "player": "Ousmane Dembélé",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Ousmane_Dembele_France_v_Senegal_16_June_2026-341_(cropped)_2.jpg"
+ },
+ {
+  "id": "wirtz",
+  "player": "Florian Wirtz",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Florian_Wirtz_Ecuador_v_Germany_25_June_2026-181_(cropped).jpg"
+ },
+ {
+  "id": "musiala",
+  "player": "Jamal Musiala",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Jamal_Musiala_Ecuador_v_Germany_25_June_2026-174_(cropped).jpg"
+ },
+ {
+  "id": "rodri",
+  "player": "Rodri",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Rodri_Argentina_v_Spain_19_July_2026-187_(cropped).jpg"
+ },
+ {
+  "id": "lewandowski",
+  "player": "Robert Lewandowski",
+  "author": "Bryan Berlin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Robert_Lewandowski_NYCFC_v_Chicago_25_July_2026-383.jpg"
  }
 ]
