@@ -29,6 +29,21 @@ PLAYERS = {
     "vinicius": "Vinícius Júnior",
     "kane": "Harry Kane",
     "neymar": "Neymar",
+    "dejong": "Frenkie de Jong",
+    "gakpo": "Cody Gakpo",
+    "depay": "Memphis Depay",
+    "hakan": "Hakan Çalhanoğlu",
+    "pedri": "Pedri",
+    "debruyne": "Kevin De Bruyne",
+    "modric": "Luka Modrić",
+    "saka": "Bukayo Saka",
+    "foden": "Phil Foden",
+    "griezmann": "Antoine Griezmann",
+    "dembele": "Ousmane Dembélé",
+    "wirtz": "Florian Wirtz",
+    "musiala": "Jamal Musiala",
+    "rodri": "Rodri (footballer, born 1996)",
+    "lewandowski": "Robert Lewandowski",
 }
 UA = {"User-Agent": "DefneGames/1.0 (https://github.com/mustafadalci/Defne-games; family maths game)"}
 OUT = Path(__file__).resolve().parent.parent / "photos"
@@ -69,7 +84,7 @@ def main():
         img.crop((left, top, left + W, top + H)).save(OUT / f"{pid}.jpg", quality=82, optimize=True, progressive=True)
         credits.append({
             "id": pid,
-            "player": title,
+            "player": re.sub(r" \(.*\)$", "", title),
             "author": strip_html(meta.get("Artist", {}).get("value")) or "onbekend",
             "license": strip_html(meta.get("LicenseShortName", {}).get("value")),
             "source": info["descriptionurl"],

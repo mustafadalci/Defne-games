@@ -238,6 +238,14 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
       flag: '<rect width="36" height="24" fill="#fff"/><rect x="15" width="6" height="24" fill="#CE1124"/><rect y="9" width="36" height="6" fill="#CE1124"/>' },
     BRA: { name: 'Brazilië', kit: '#FFDF00', trim: '#009C3B',
       flag: '<rect width="36" height="24" fill="#009C3B"/><path d="M18 3 L33 12 L18 21 L3 12 Z" fill="#FFDF00"/><circle cx="18" cy="12" r="5" fill="#002776"/>' },
+    BEL: { name: 'België', kit: '#C8102E', trim: '#FDDA24',
+      flag: '<rect width="12" height="24" fill="#111"/><rect x="12" width="12" height="24" fill="#FDDA24"/><rect x="24" width="12" height="24" fill="#EF3340"/>' },
+    CRO: { name: 'Kroatië', kit: '#F4F4F2', stripes: '#E1251B', trim: '#1A3E8C',
+      flag: '<rect width="36" height="8" fill="#FF0000"/><rect y="8" width="36" height="8" fill="#fff"/><rect y="16" width="36" height="8" fill="#171796"/><rect x="14" y="6" width="8" height="10" fill="#fff" stroke="#FF0000" stroke-width="1.5"/>' },
+    GER: { name: 'Duitsland', kit: '#F4F4F2', trim: '#111',
+      flag: '<rect width="36" height="8" fill="#111"/><rect y="8" width="36" height="8" fill="#DD0000"/><rect y="16" width="36" height="8" fill="#FFCE00"/>' },
+    POL: { name: 'Polen', kit: '#F4F4F2', trim: '#DC143C',
+      flag: '<rect width="36" height="12" fill="#fff"/><rect y="12" width="36" height="12" fill="#DC143C"/><rect width="36" height="24" fill="none" stroke="#ccc"/>' },
   };
 
   const POS = { SP: 'Spits', AV: 'Aanvaller', VL: 'Vleugelspeler', MV: 'Middenvelder', VD: 'Verdediger' };
@@ -258,7 +266,22 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--gold); outline-
     { id: 'bellingham', first: 'Jude', last: 'Bellingham', c: 'ENG', pos: 'MV', tier: 'goud', ovr: 89, st: [79, 84, 84, 88, 75, 84] },
     { id: 'vinicius', first: 'Vinícius', last: 'Vini Jr.', c: 'BRA', pos: 'VL', tier: 'goud', ovr: 89, st: [95, 84, 81, 90, 29, 69] },
     { id: 'kane', first: 'Harry', last: 'Kane', c: 'ENG', pos: 'SP', tier: 'goud', ovr: 89, st: [65, 93, 84, 82, 49, 82] },
-    { id: 'neymar', first: 'Neymar', last: 'Neymar Jr.', c: 'BRA', pos: 'AV', tier: 'icoon', ovr: 85, st: [84, 83, 85, 90, 30, 61] }
+    { id: 'neymar', first: 'Neymar', last: 'Neymar Jr.', c: 'BRA', pos: 'AV', tier: 'icoon', ovr: 85, st: [84, 83, 85, 90, 30, 61] },
+    { id: 'dejong', first: 'Frenkie', last: 'de Jong', c: 'NED', pos: 'MV', tier: 'goud', ovr: 86, st: [80, 69, 86, 88, 75, 78] },
+    { id: 'gakpo', first: 'Cody', last: 'Gakpo', c: 'NED', pos: 'VL', tier: 'goud', ovr: 84, st: [86, 82, 79, 84, 40, 76] },
+    { id: 'depay', first: 'Memphis', last: 'Memphis', c: 'NED', pos: 'SP', tier: 'goud', ovr: 82, st: [83, 83, 80, 85, 32, 70] },
+    { id: 'hakan', first: 'Hakan', last: 'Çalhanoğlu', c: 'TUR', pos: 'MV', tier: 'goud', ovr: 86, st: [68, 86, 88, 83, 72, 74] },
+    { id: 'pedri', first: 'Pedro', last: 'Pedri', c: 'ESP', pos: 'MV', tier: 'goud', ovr: 87, st: [77, 72, 88, 89, 66, 68] },
+    { id: 'debruyne', first: 'Kevin', last: 'De Bruyne', c: 'BEL', pos: 'MV', tier: 'icoon', ovr: 87, st: [70, 87, 93, 86, 62, 74] },
+    { id: 'modric', first: 'Luka', last: 'Modrić', c: 'CRO', pos: 'MV', tier: 'icoon', ovr: 85, st: [70, 76, 88, 87, 70, 66] },
+    { id: 'saka', first: 'Bukayo', last: 'Saka', c: 'ENG', pos: 'VL', tier: 'goud', ovr: 88, st: [87, 83, 83, 88, 50, 72] },
+    { id: 'foden', first: 'Phil', last: 'Foden', c: 'ENG', pos: 'MV', tier: 'goud', ovr: 86, st: [83, 83, 85, 89, 55, 62] },
+    { id: 'griezmann', first: 'Antoine', last: 'Griezmann', c: 'FRA', pos: 'AV', tier: 'goud', ovr: 86, st: [80, 85, 86, 87, 52, 72] },
+    { id: 'dembele', first: 'Ousmane', last: 'Dembélé', c: 'FRA', pos: 'VL', tier: 'goud', ovr: 90, st: [93, 88, 85, 91, 40, 72] },
+    { id: 'wirtz', first: 'Florian', last: 'Wirtz', c: 'GER', pos: 'MV', tier: 'talent', ovr: 89, st: [80, 83, 89, 91, 55, 65] },
+    { id: 'musiala', first: 'Jamal', last: 'Musiala', c: 'GER', pos: 'MV', tier: 'talent', ovr: 88, st: [83, 80, 82, 92, 55, 62] },
+    { id: 'rodri', first: 'Rodrigo', last: 'Rodri', c: 'ESP', pos: 'MV', tier: 'goud', ovr: 90, st: [65, 80, 89, 85, 87, 85] },
+    { id: 'lewandowski', first: 'Robert', last: 'Lewandowski', c: 'POL', pos: 'SP', tier: 'icoon', ovr: 87, st: [74, 91, 79, 85, 44, 80] }
   ];
   const STATS = ['SNE', 'SCH', 'PAS', 'DRI', 'VER', 'FYS'];
   const TIERS = {
