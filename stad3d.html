@@ -259,7 +259,7 @@ function makePerson(L, o = {}) {
   // The head is modelled at radius .46 and scaled down, so the hair and hat shapes stay simple.
   const head = new THREE.Group(); head.position.y = 2.12; head.scale.setScalar(.6); body.add(head);
   const skull = mesh(new THREE.SphereGeometry(.46, 28, 20), skin); skull.scale.set(.94, 1.04, .98); head.add(skull);
-  head.add(mesh(new THREE.SphereGeometry(.08, 10, 8), skin, 0, -.07, .45));
+  const nose = mesh(new THREE.SphereGeometry(.055, 12, 10), skin, 0, -.06, .44); nose.scale.set(1, 1.15, .8); head.add(nose);
   const eyeW = mats.eyeW || (mats.eyeW = std({ color: '#FFFFFF', roughness: .3 })), iris = mats.iris || (mats.iris = std({ color: '#4A3020', roughness: .2 }));
   [-1, 1].forEach(s => {
     const w = mesh(new THREE.SphereGeometry(.075, 14, 10), eyeW, s * .16, .05, .38); w.scale.z = .55; head.add(w);
@@ -269,7 +269,7 @@ function makePerson(L, o = {}) {
     const ear = mesh(new THREE.SphereGeometry(.08, 10, 8), skin, s * .44, -.02, 0); ear.scale.x = .5; head.add(ear);
     const cheek = mesh(new THREE.SphereGeometry(.07, 10, 8), std({ color: '#F0A49A', roughness: .7, transparent: true, opacity: .45 }), s * .26, -.12, .37); cheek.scale.z = .3; head.add(cheek);
   });
-  const smile = mesh(new THREE.TorusGeometry(.075, .016, 6, 14, Math.PI), '#9C4A3E', 0, -.2, .42); smile.rotation.z = Math.PI; head.add(smile);
+  const smile = mesh(new THREE.TorusGeometry(.07, .015, 6, 16, Math.PI * .8), '#C0504A', 0, -.17, .43); smile.rotation.z = Math.PI * 1.1; smile.scale.y = .7; head.add(smile);
   addHair(head, L.hair, L.hairColor);
   addHat(head, L.hat, L.hatColor);
   g.userData = { body, legL, legR, armL, armR, head };
@@ -277,15 +277,25 @@ function makePerson(L, o = {}) {
 }
 function hairMat(c) { return mats['hair' + c] || (mats['hair' + c] = std({ color: c, roughness: .5, metalness: .05 })); }
 function addHair(head, style, c) {
-  const m = hairMat(c);
-  const cap = mesh(new THREE.SphereGeometry(.5, 28, 16, 0, Math.PI * 2, 0, Math.PI * (style === 'kort' ? .45 : .52)), m);
-  cap.rotation.x = -.42; cap.position.y = .02; head.add(cap);
-  const fringe = mesh(new THREE.SphereGeometry(.47, 20, 8, -1.1, 2.2, .35, .5), m, 0, .02, .04); head.add(fringe);
-  if (style === 'lang') { const back = mesh(new THREE.CylinderGeometry(.46, .42, 1.15, 20, 1, true, Math.PI * .55, Math.PI * .9), std({ color: c, roughness: .5, side: THREE.DoubleSide }), 0, -.45, -.04); back.rotation.y = Math.PI; head.add(back); }
-  if (style === 'staartjes') [-1, 1].forEach(s => { const t = mesh(new THREE.CapsuleGeometry(.13, .45, 4, 10), m, s * .55, -.3, -.12); t.rotation.z = s * .35; head.add(t); head.add(sph(.07, '#FF6FA5', s * .47, .02, -.1, 8)); });
-  if (style === 'paardenstaart') { const t = mesh(new THREE.CapsuleGeometry(.13, .65, 4, 10), m, 0, -.35, -.55); t.rotation.x = .35; head.add(t); head.add(sph(.08, '#FF6FA5', 0, .05, -.48, 8)); }
-  if (style === 'knot') head.add(mesh(new THREE.SphereGeometry(.24, 16, 12), m, 0, .5, -.18));
-  if (style === 'krullen') for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; head.add(mesh(new THREE.SphereGeometry(.17, 10, 8), m, Math.sin(a) * .44, .1 - (i % 2) * .22, Math.cos(a) * .4 - .06)); }
+  const m = hairMat(c), soft = std({ color: c, roughness: .5, side: THREE.DoubleSide });
+  // the cap covers the top and the back of the head; its front edge sits on the forehead, above the eyebrows
+  const cap = mesh(new THREE.SphereGeometry(.5, 28, 16, 0, Math.PI * 2, 0, Math.PI * .58), m); cap.rotation.x = -.72; cap.position.set(0, .02, -.02); head.add(cap);
+  // bangs: three soft tufts over the forehead
+  if (style !== 'kort') [-.2, 0, .2].forEach((x, i) => { const t = mesh(new THREE.SphereGeometry(.17, 14, 10), m, x, .27 - Math.abs(x) * .15, .34 - Math.abs(x) * .2); t.scale.set(1.15, .55, .6); t.rotation.z = -x * 1.2; head.add(t); });
+  else { const t = mesh(new THREE.SphereGeometry(.3, 14, 10), m, .05, .3, .26); t.scale.set(1.3, .45, .6); head.add(t); }
+  const sideLocks = len => [-1, 1].forEach(s => { const l = mesh(new THREE.CapsuleGeometry(.1, len, 4, 10), m, s * .41, .02 - len / 2, .06); l.rotation.z = s * .08; head.add(l); });
+  if (style === 'lang') {
+    head.add(mesh(new THREE.CylinderGeometry(.47, .43, 1.15, 22, 1, true, Math.PI * .58, Math.PI * .84), soft, 0, -.42, -.02));
+    sideLocks(.75);
+  }
+  if (style === 'staartjes') { sideLocks(.2); [-1, 1].forEach(s => { const t = mesh(new THREE.CapsuleGeometry(.13, .45, 4, 10), m, s * .56, -.3, -.14); t.rotation.z = s * .35; head.add(t); head.add(sph(.07, '#FF6FA5', s * .48, .02, -.12, 8)); }); }
+  if (style === 'paardenstaart') { sideLocks(.15); const t = mesh(new THREE.CapsuleGeometry(.13, .65, 4, 10), m, 0, -.35, -.56); t.rotation.x = .35; head.add(t); head.add(sph(.08, '#FF6FA5', 0, .05, -.5, 8)); }
+  if (style === 'knot') { sideLocks(.12); head.add(mesh(new THREE.SphereGeometry(.24, 16, 12), m, 0, .52, -.2)); }
+  if (style === 'krullen') {
+    // curls around the sides, the back and on top, never over the face
+    for (let i = 0; i < 12; i++) { const a = Math.PI * (.32 + 1.36 * i / 11); head.add(mesh(new THREE.SphereGeometry(.17, 10, 8), m, Math.sin(a) * .45, .05 - (i % 2) * .2, Math.cos(a) * .42 - .04)); }
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; head.add(mesh(new THREE.SphereGeometry(.16, 10, 8), m, Math.sin(a) * .26, .4, Math.cos(a) * .22 - .06)); }
+  }
 }
 function addHat(head, hat, c) {
   const m = std({ color: c, roughness: .8 });
@@ -1063,7 +1073,7 @@ function frame(now) {
   Stad.boot({ drawPlayer, update() {}, resize, nisanSays, play, keyDir, headScreen });
   updateCamera(0, true);
   $('#loading').remove();
-  window.stad3d = { gl, scene };  // handy for checking draw calls in the browser console
+  window.stad3d = { gl, scene, THREE, makePerson, makeMisem };  // handy for checking things in the browser console
   requestAnimationFrame(frame);
 })();
 </script>
