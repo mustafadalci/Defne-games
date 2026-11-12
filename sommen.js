@@ -133,7 +133,7 @@
 
   // ---------- Sound & speech ----------
   let actx;
-  const api = { LEVELS, make, soundOn: true };
+  const api = { LEVELS, make, slot, soundOn: true };
   api.tones = function (freqs, dur = .12, type = 'sine') {
     if (!api.soundOn) return;
     try {
@@ -309,8 +309,9 @@
     });
 
     return {
-      ask() {
-        q = api.make(level());
+      // ask() asks a generated question; ask(custom) asks one the game made itself, built like the GEN questions.
+      ask(custom) {
+        q = custom || api.make(level());
         vals = q.answers.map(() => ''); done = q.answers.map(() => 0); tries = q.answers.map(() => 0);
         active = 0; wrong = 0; locked = false;
         $('.sm-intro').textContent = q.intro;
