@@ -13,7 +13,7 @@
   // ================= Look of the character =================
   const DEFAULT_LOOK = {
     hair: 'lang', hairColor: '#6B3E26', top: 'tshirt', topColor: '#FF6FA5', bottom: 'rok', bottomColor: '#5B7CFA',
-    shoes: 'sneaker', shoeColor: '#FFFFFF', hat: 'geen', hatColor: '#FFD23F', board: 'geen', boardColor: '#7C4DFF'
+    shoes: 'sneaker', shoeColor: '#FFFFFF', hat: 'geen', hatColor: '#FFD23F', board: 'geen', boardColor: '#7C4DFF', boardArt: 'vlammen', wheelColor: '#FFD23F'
   };
   const NISAN_LOOK = {
     hair: 'krullen', hairColor: '#2B1D14', top: 'streep', topColor: '#2EC4B6', bottom: 'broek', bottomColor: '#FFB703',
@@ -53,8 +53,8 @@
   const CLOTH_COLORS = ['#FF6FA5', '#E0483D', '#FF9F1C', '#FFD23F', '#2E9E5B', '#2EC4B6', '#5B7CFA', '#7C4DFF', '#FFFFFF', '#2B2B3A'];
   const HAIR_COLORS = ['#2B1D14', '#6B3E26', '#A0612F', '#E8C26A', '#D9542B', '#FF8CC6', '#5BA4FF', '#9B6BFF'];
 
-  function boardSVG(c) {
-    return `<rect x="-25" y="-8" width="50" height="6" rx="3" fill="${c}" stroke="rgba(0,0,0,.25)"/><circle cx="-15" cy="-1" r="3.2" fill="#333"/><circle cx="15" cy="-1" r="3.2" fill="#333"/>`;
+  function boardSVG(c, wheel = '#333') {
+    return `<rect x="-25" y="-8" width="50" height="6" rx="3" fill="${c}" stroke="rgba(0,0,0,.25)"/><circle cx="-15" cy="-1" r="3.2" fill="${wheel}" stroke="#333" stroke-width="1"/><circle cx="15" cy="-1" r="3.2" fill="${wheel}" stroke="#333" stroke-width="1"/>`;
   }
 
   // A front-facing person; the feet are at (0, 0) and the head top near y = -100.
@@ -65,7 +65,7 @@
       ? `<rect x="${x - 5}" y="-17" width="11" height="16" rx="3" fill="${sc}" stroke="rgba(0,0,0,.2)"/>`
       : `<ellipse cx="${x + 1}" cy="-3" rx="6.5" ry="4" fill="${sc}" stroke="rgba(0,0,0,.25)"/>`;
     let s = o.noShadow ? '' : `<ellipse cx="0" cy="0" rx="17" ry="4.5" fill="#000" opacity=".18"/>`;
-    if (o.board) s += boardSVG(L.boardColor);
+    if (o.board) s += boardSVG(L.boardColor, L.wheelColor);
     s += `<g transform="translate(0 ${-lift})">`;
     s += (HAIR[L.hair] || HAIR.lang).back(L.hairColor);
     s += `<g class="lg l"><rect x="-9" y="-35" width="7" height="32" rx="3" fill="${legFill}"/>${shoe(-6)}</g>`;
@@ -292,7 +292,7 @@
     if (keys.size) {
       vx = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0);
       vy = (keys.has('ArrowDown') ? 1 : 0) - (keys.has('ArrowUp') ? 1 : 0);
-      if (vx || vy) { target = null; onArrive = null; route = []; }
+      if (vx || vy) { target = null; onArrive = null; route = []; if (R.keyDir) [vx, vy] = R.keyDir(vx, vy); }
     } else if (target) {
       const dx = target.x - P.x, dy = target.y - P.y, d = Math.hypot(dx, dy);
       if (d < 7) { if (route.length) target = route.shift(); else { target = null; const f = onArrive; onArrive = null; if (f) f(); } }
@@ -301,7 +301,7 @@
     const len = Math.hypot(vx, vy);
     if (len) {
       vx /= len; vy /= len;
-      const sp = (riding ? 270 : boardOn() ? 280 : 175) * dt;
+      const sp = (riding ? 270 : boardOn() ? 480 : 175) * dt;
       let nx = P.x + vx * sp, ny = P.y + vy * sp;
       const z = ZONES.manege;
       if (riding) { nx = clamp(nx, z.x + 70, z.x + z.w - 80); ny = clamp(ny, z.y + 120, z.y + z.h - 20); }
@@ -328,6 +328,7 @@
     }
     R.update();
     near();
+    placeHeadBtn();
   }
 
   // ================= HUD: what can be done here =================
@@ -385,7 +386,7 @@
     play(id) { if (busy() || riding) return; const p = PLAY[id]; walkTo(p.x, p.y + 50, () => play(id)); },
     horse() { if (busy() || riding) return; walkTo(horse.x - 40, horse.y + 10, mount); },
     npc() { if (busy()) return; walkTo(nisanPos.x - 50, nisanPos.y + 6); R.nisanSays(pick(['Hoi Defne!', 'Kom je spelen?', 'Misem is zo lief!', 'Zullen we naar de dierentuin?'])); },
-    ground(x, y) { if (busy()) return; walkTo(x, y); }
+    ground(x, y) { if (busy()) return; if (!$('#headMenu').hidden) return closeHeadMenu(); walkTo(x, y); }
   };
 
   $('#hud').addEventListener('click', ev => {
@@ -411,8 +412,8 @@
   // ================= Rooms =================
   const ROOMS = {};
   function openRoom(id) {
-    const p = PLACES.find(q => q.id === id);
-    roomOpen = id; keys.clear(); target = null;
+    const p = PLACES.find(q => q.id === id) || SPECIAL_ROOMS[id];
+    roomOpen = id; keys.clear(); target = null; closeHeadMenu(); $('#headBtn').hidden = true;
     $('#roomTitle').textContent = `${p.icon} ${p.name}`;
     $('#room').hidden = false; $('#room').style.background = p.wall;
     $('#roomBody').scrollTop = 0;
@@ -421,11 +422,11 @@
   }
   function closeRoom() {
     if (!roomOpen) return;
-    const p = PLACES.find(q => q.id === roomOpen), d = doorOf(p);
+    const p = PLACES.find(q => q.id === roomOpen);
     if (roomOpen === 'skate') stopSkate();
     roomOpen = null;
     $('#room').hidden = true; $('#roomBody').innerHTML = '';
-    P.x = d.x; P.y = d.y + 40; M.x = P.x - 36; M.y = P.y + 6;
+    if (p) { const d = doorOf(p); P.x = d.x; P.y = d.y + 40; M.x = P.x - 36; M.y = P.y + 6; }
     hudKey = '-'; R.drawPlayer(); R.update();
   }
   $('#outBtn').addEventListener('click', closeRoom);
@@ -589,10 +590,10 @@
         <g><ellipse cx="540" cy="350" rx="60" ry="20" fill="#B5793F"/><ellipse cx="540" cy="344" rx="48" ry="13" fill="#F2DDB6"/><g transform="translate(540 348) scale(1.6)">${misemSVG()}</g><text x="540" y="400" text-anchor="middle" font-size="18" font-weight="700" fill="#5E3A1A">Mandje van Misem</text></g>
         <rect class="night" id="night" width="900" height="420" fill="#1B1F4A" opacity="0" pointer-events="none"/>`)}</div>
       <div class="panel" id="fridgePanel" hidden><p class="label">In de koelkast</p><p class="lead" style="font-size:2rem">${fridgeItems}</p></div>
-      <div id="wardrobe"></div></div>`;
+      </div>`;
     body.querySelectorAll('.toy').forEach(t => t.addEventListener('click', () => {
       t.classList.remove('wiggle'); void t.getBBox(); t.classList.add('wiggle');
-      if (t.dataset.t === 'kast') wardrobe($('#wardrobe'));
+      if (t.dataset.t === 'kast') wardrobe(body, () => ROOMS.huisDefne(body));
       if (t.dataset.t === 'koelkast') { $('#fridgePanel').hidden = !$('#fridgePanel').hidden; SOUND.pop(); }
       if (t.dataset.t === 'bed') {
         const n = $('#night'); n.style.opacity = .7; sweep([[0, 500], [1.2, 300]], 'sine', .1);
@@ -601,31 +602,153 @@
     }));
   };
 
-  function wardrobe(el) {
-    let tab = 'top';
-    const TABS = { top: '👕 Shirt', bottom: '👖 Broek & rok', shoes: '👟 Schoenen', hat: '🎩 Hoed', board: '🛹 Skateboard' };
-    const render = () => {
-      let opts = '';
-      const chips = (field, map) => `<div class="choices">${Object.entries(map).map(([k, v]) => `<button class="chip" data-f="${field}" data-v="${k}" aria-pressed="${state.look[field] === k}">${v.name || v}</button>`).join('')}</div>`;
-      const colors = field => `<div class="choices">${CLOTH_COLORS.map(c => `<button class="sw" data-f="${field}" data-v="${c}" style="background:${c}" aria-pressed="${state.look[field] === c}" aria-label="Kleur"></button>`).join('')}</div>`;
-      if (tab === 'top') opts = `<p class="label">Soort</p>${chips('top', TOPS)}<p class="label">Kleur</p>${colors('topColor')}`;
-      if (tab === 'bottom') opts = `<p class="label">Soort</p>${chips('bottom', BOTTOMS)}<p class="label">Kleur</p>${colors('bottomColor')}`;
-      if (tab === 'shoes') opts = `<p class="label">Soort</p>${chips('shoes', SHOES)}<p class="label">Kleur</p>${colors('shoeColor')}`;
-      if (tab === 'hat') opts = `<p class="label">Soort</p>${chips('hat', HATS)}<p class="label">Kleur</p>${colors('hatColor')}`;
-      if (tab === 'board') opts = `<p class="label">Skateboard</p>${chips('board', { geen: 'Geen skateboard', ja: 'Skateboard' })}<p class="label">Kleur</p>${colors('boardColor')}
-        <p class="lead">Met een skateboard rijd je sneller door de stad. In de skatepark kun je er trucjes mee doen!</p>`;
-      el.innerHTML = `<div class="panel"><p class="label" style="font-size:1.4rem">👗 Kledingkast</p><div class="split">
-        <div>${meBox(state.look, 240)}${state.look.board !== 'geen' ? `<svg class="preview" style="width:min(100%,160px)" viewBox="-30 -12 60 16">${boardSVG(state.look.boardColor)}</svg>` : ''}</div>
-        <div style="display:flex;flex-direction:column;gap:10px"><div class="tabs">${Object.entries(TABS).map(([k, v]) => `<button class="tab" data-tab="${k}" aria-selected="${tab === k}">${v}</button>`).join('')}</div>${opts}</div></div></div>`;
-      el.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; render(); }));
-      el.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => {
-        setLook({ [b.dataset.f]: b.dataset.v });
-        if (b.dataset.f === 'board') { state.onBoard = b.dataset.v !== 'geen'; store.set('onBoard', state.onBoard); }
-        SOUND.pop(); render();
-      }));
+  // ---- Wardrobe: real clothes on a rail and shelves; drag one onto Defne (or tap it) to put it on ----
+  const CLOSET = {
+    top: { label: '👕 Shirts', items: [['tshirt', '#FF6FA5'], ['tshirt', '#5B7CFA'], ['tshirt', '#FFFFFF'], ['trui', '#FFD23F'], ['trui', '#7C4DFF'], ['trui', '#2E9E5B'], ['streep', '#2EC4B6'], ['streep', '#E0483D']].map(([top, topColor]) => ({ top, topColor })) },
+    bottom: { label: '👖 Broeken & rokken', items: [['rok', '#5B7CFA'], ['rok', '#FF6FA5'], ['rok', '#7C4DFF'], ['broek', '#3B5BA9'], ['broek', '#2B2B3A'], ['kort', '#FFD23F'], ['kort', '#E0483D']].map(([bottom, bottomColor]) => ({ bottom, bottomColor })) },
+    shoes: { label: '👟 Schoenen', items: [['sneaker', '#FFFFFF'], ['sneaker', '#FF6FA5'], ['sneaker', '#2B2B3A'], ['laarzen', '#B5793F'], ['laarzen', '#E0483D']].map(([shoes, shoeColor]) => ({ shoes, shoeColor })) },
+    hat: { label: '🎩 Hoeden', items: [['geen', '#FFD23F'], ['pet', '#E0483D'], ['muts', '#5B7CFA'], ['zonnehoed', '#FFD23F'], ['kroon', '#FF6FA5'], ['strik', '#FF6FA5']].map(([hat, hatColor]) => ({ hat, hatColor })) }
+  };
+  function itemSVG(kind, it) {
+    const ol = 'stroke="rgba(0,0,0,.35)" stroke-width="1.6"';
+    if (kind === 'top') {
+      const c = it.topColor, long = it.top === 'trui';
+      return `<path d="M0 -26 q0 -6 6 -6 M0 -26 v4" stroke="#8A8F99" stroke-width="2" fill="none"/>
+        <path d="M-20 -14 L-8 -21 Q0 -16 8 -21 L20 -14 L${long ? 26 : 22} ${long ? 10 : -4} L14 ${long ? 12 : -1} L14 22 L-14 22 L-14 ${long ? 12 : -1} L${long ? -26 : -22} ${long ? 10 : -4} Z" fill="${c}" ${ol}/>
+        ${it.top === 'streep' ? `<path d="M-14 0 H14 M-14 9 H14" stroke="${c === '#FFFFFF' ? '#5B7CFA' : '#fff'}" stroke-width="3.5"/>` : ''}
+        ${long ? `<path d="M0 8 l-4 -4 a2.5 2.5 0 0 1 4 -3 a2.5 2.5 0 0 1 4 3 Z" fill="#fff" opacity=".85"/>` : ''}`;
+    }
+    if (kind === 'bottom') {
+      const c = it.bottomColor;
+      if (it.bottom === 'rok') return `<path d="M-12 -16 H12 L20 14 Q0 20 -20 14 Z" fill="${c}" ${ol}/><rect x="-12" y="-18" width="24" height="5" rx="2" fill="${c}" ${ol}/>`;
+      const len = it.bottom === 'kort' ? 2 : 22;
+      return `<path d="M-14 -18 H14 L15 ${len} H3 L1 -4 H-1 L-3 ${len} H-15 Z" fill="${c}" ${ol}/>`;
+    }
+    if (kind === 'shoes') {
+      const c = it.shoeColor;
+      const one = x => it.shoes === 'laarzen' ? `<path d="M${x - 6} -14 h10 v18 h6 q2 6 -2 6 h-14 Z" fill="${c}" ${ol}/>` : `<path d="M${x - 8} 2 q0 -10 8 -10 q4 0 6 4 l8 2 q3 2 2 6 h-24 Z" fill="${c}" ${ol}/><path d="M${x - 8} 4 h24" stroke="#fff" stroke-width="2"/>`;
+      return one(-10) + one(8);
+    }
+    if (it.hat === 'geen') return `<text x="0" y="6" text-anchor="middle" font-size="13" font-weight="700" fill="#5E3A1A">Zonder</text><text x="0" y="20" text-anchor="middle" font-size="13" font-weight="700" fill="#5E3A1A">hoed</text>`;
+    return `<g transform="translate(0 90) scale(.9)">${HATS[it.hat].draw(it.hatColor)}</g>`;
+  }
+  const wearing = (kind, it) => Object.keys(it).every(k => state.look[k] === it[k]);
+
+  function wardrobe(body, back) {
+    const shelves = Object.entries(CLOSET).map(([kind, sec]) => `<p class="shelf-label">${sec.label}</p>
+      <div class="shelf ${kind === 'top' ? 'rail' : ''}">${sec.items.map((it, i) => `<button class="cloth" data-kind="${kind}" data-i="${i}" aria-pressed="${wearing(kind, it)}" aria-label="${sec.label}">
+        <svg viewBox="-30 -34 60 60">${itemSVG(kind, it)}</svg></button>`).join('')}</div>`).join('');
+    body.innerHTML = `<div class="wrap">
+      <button class="big board-btn" id="toBoard">🛹 Mijn skateboard</button>
+      <div class="split">
+        <div class="panel dropzone" id="dropMe"><div id="mePreview">${meBox(state.look, 250)}</div><p class="lead" style="text-align:center">Sleep kleren naar Defne, of tik erop.</p></div>
+        <div class="closet">${shelves}</div>
+      </div>
+      <div class="row"><button class="big green" id="wBack">${back ? '← Terug naar de kamer' : '✓ Klaar'}</button></div></div>`;
+    body.scrollTop = 0;
+    const wear = (kind, i) => {
+      setLook(CLOSET[kind].items[i]); SOUND.pop();
+      $('#mePreview').innerHTML = meBox(state.look, 250);
+      $('#mePreview').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.06) rotate(-2deg)' }, { transform: 'scale(1)' }], { duration: 350 });
+      body.querySelectorAll('.cloth').forEach(b => b.setAttribute('aria-pressed', String(wearing(b.dataset.kind, CLOSET[b.dataset.kind].items[+b.dataset.i]))));
     };
-    render();
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // drag & drop with a ghost that follows the finger
+    let drag = null;
+    const zone = $('#dropMe'), overZone = (x, y) => { const r = zone.getBoundingClientRect(); return x > r.left && x < r.right && y > r.top && y < r.bottom; };
+    body.querySelectorAll('.cloth').forEach(b => b.addEventListener('pointerdown', e => {
+      drag = { b, x0: e.clientX, y0: e.clientY, ghost: null }; b.setPointerCapture(e.pointerId);
+    }));
+    body.addEventListener('pointermove', e => {
+      if (!drag) return;
+      if (!drag.ghost && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 8) {
+        drag.ghost = drag.b.querySelector('svg').cloneNode(true); drag.ghost.classList.add('ghost'); document.body.appendChild(drag.ghost);
+      }
+      if (drag.ghost) { drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px'; zone.classList.toggle('over', overZone(e.clientX, e.clientY)); }
+    });
+    const end = e => {
+      if (!drag) return;
+      const { b, ghost } = drag; drag = null;
+      zone.classList.remove('over');
+      if (ghost) { ghost.remove(); if (overZone(e.clientX, e.clientY)) wear(b.dataset.kind, +b.dataset.i); }
+      else wear(b.dataset.kind, +b.dataset.i);
+    };
+    body.addEventListener('pointerup', end); body.addEventListener('pointercancel', () => { if (drag && drag.ghost) drag.ghost.remove(); drag = null; zone.classList.remove('over'); });
+    $('#toBoard').addEventListener('click', () => boardShop(body, () => wardrobe(body, back)));
+    $('#wBack').addEventListener('click', () => back ? back() : closeRoom());
+  }
+
+  // ---- Skateboard workshop: top colour, the design underneath, wheels; flip the board to see the bottom ----
+  const ARTS = {
+    effen: { name: 'Effen', draw: c => '' },
+    vlammen: { name: 'Vlammen', draw: () => [0, 1, 2, 3, 4].map(i => `<path d="M${30 + i * 50} 80 q-12 -30 8 -52 q-2 22 14 28 q4 -16 -2 -30 q26 20 10 54 Z" fill="${i % 2 ? '#FF9F1C' : '#E0483D'}"/><path d="M${40 + i * 50} 80 q-4 -16 6 -24 q4 12 6 24 Z" fill="#FFD23F"/>`).join('') },
+    sterren: { name: 'Sterren', draw: () => [[50, 30], [100, 60], [150, 25], [200, 58], [250, 32], [75, 66], [225, 18]].map(([x, y], i) => `<path transform="translate(${x} ${y}) scale(${i % 2 ? .7 : 1})" d="M0 -12 L3.5 -4 L12 -3.7 L5.5 2 L7.4 10.5 L0 6 L-7.4 10.5 L-5.5 2 L-12 -3.7 L-3.5 -4 Z" fill="#FFD23F" stroke="#fff" stroke-width="1"/>`).join('') },
+    regenboog: { name: 'Regenboog', draw: () => ['#E84A3F', '#F39A2D', '#F6D23C', '#4FB858', '#3F8FDB', '#8C5BD1'].map((c, i) => `<rect x="0" y="${i * 15}" width="300" height="15" fill="${c}"/>`).join('') },
+    hartjes: { name: 'Hartjes', draw: () => [[60, 45], [120, 30], [180, 58], [240, 40], [95, 70], [210, 18]].map(([x, y], i) => `<path transform="translate(${x} ${y}) scale(${i % 2 ? .8 : 1.1})" d="M0 10 L-12 -2 A6.5 6.5 0 0 1 0 -9 A6.5 6.5 0 0 1 12 -2 Z" fill="${i % 2 ? '#FFFFFF' : '#FF4F8B'}"/>`).join('') },
+    bliksem: { name: 'Bliksem', draw: () => `<path d="M40 45 L120 20 L110 42 L190 30 L175 50 L260 45 L150 72 L165 52 L90 62 L100 44 Z" fill="#FFD23F" stroke="#2B2B3A" stroke-width="3" stroke-linejoin="round"/>` },
+    misem: { name: 'Misem', draw: () => `<g transform="translate(150 70) scale(1.6)">${misemSVG()}</g><text x="60" y="54" font-size="26" font-weight="700" fill="#fff" font-family="Fredoka, sans-serif">MISEM</text>` },
+    dambord: { name: 'Dambord', draw: () => [...Array(40)].map((_, i) => (Math.floor(i / 10) + i) % 2 ? `<rect x="${(i % 10) * 30}" y="${Math.floor(i / 10) * 22.5}" width="30" height="22.5" fill="#2B2B3A"/>` : '').join('') }
+  };
+  const BOARD_SHAPE = 'M45 5 H255 A40 40 0 0 1 255 85 H45 A40 40 0 0 1 45 5 Z';
+  function deckSVG(L, side, id) {
+    const art = ARTS[L.boardArt] || ARTS.effen, c = L.boardColor;
+    if (side === 'top') return `<svg viewBox="0 0 300 90"><path d="${BOARD_SHAPE}" fill="${c}" stroke="rgba(0,0,0,.3)" stroke-width="3"/>
+      ${[70, 230].map(x => [35, 55].map(y => `<circle cx="${x + (y > 45 ? 8 : -8)}" cy="${y}" r="3" fill="#C9CED6"/>`).join('')).join('')}</svg>`;
+    const wheels = [70, 230].map(x => `<rect x="${x - 10}" y="18" width="20" height="54" rx="6" fill="#B9C0CC"/><rect x="${x - 9}" y="4" width="18" height="18" rx="5" fill="${L.wheelColor}" stroke="#333" stroke-width="1.5"/><rect x="${x - 9}" y="68" width="18" height="18" rx="5" fill="${L.wheelColor}" stroke="#333" stroke-width="1.5"/>`).join('');
+    return `<svg viewBox="0 0 300 90"><defs><clipPath id="${id}"><path d="${BOARD_SHAPE}"/></clipPath></defs>
+      <path d="${BOARD_SHAPE}" fill="${c}"/><g clip-path="url(#${id})">${art.draw(c)}</g><path d="${BOARD_SHAPE}" fill="none" stroke="rgba(0,0,0,.3)" stroke-width="3"/>${wheels}</svg>`;
+  }
+  function boardShop(body, back) {
+    let flipped = false;
+    const paint = () => {
+      const L = state.look, has = L.board !== 'geen';
+      body.innerHTML = `<div class="wrap">
+        <div class="panel" style="align-items:center"><p class="label" style="font-size:1.4rem">🛹 Mijn skateboard</p>
+          <div class="deck-stage"><div class="deck ${flipped ? 'flipped' : ''}" id="deck"><div class="face">${deckSVG(L, 'top')}</div><div class="face back">${deckSVG(L, 'bottom', 'deckClip')}</div></div></div>
+          <button class="big" id="flip">🔄 Draai om · nu: ${flipped ? 'onderkant' : 'bovenkant'}</button></div>
+        <div class="panel"><p class="label">Kleur van het board</p><div class="choices">${CLOTH_COLORS.map(c => `<button class="sw" data-f="boardColor" data-v="${c}" style="background:${c}" aria-pressed="${L.boardColor === c}" aria-label="Kleur"></button>`).join('')}</div>
+          <p class="label">Onderkant</p><div class="arts">${Object.entries(ARTS).map(([k, a]) => `<button class="art" data-f="boardArt" data-v="${k}" aria-pressed="${L.boardArt === k}">${deckSVG(Object.assign({}, L, { boardArt: k }), 'bottom', 'mini' + k)}<span>${a.name}</span></button>`).join('')}</div>
+          <p class="label">Wieltjes</p><div class="choices">${['#FFD23F', '#FFFFFF', '#FF6FA5', '#2EC4B6', '#2B2B3A', '#E0483D'].map(c => `<button class="sw" data-f="wheelColor" data-v="${c}" style="background:${c}" aria-pressed="${L.wheelColor === c}" aria-label="Wielkleur"></button>`).join('')}</div></div>
+        <div class="row"><button class="big green" id="take">${has ? (state.onBoard ? '✓ Ik sta op mijn skateboard' : '🛹 Op mijn skateboard!') : '🛹 Pak mijn skateboard!'}</button>
+          ${has ? '<button class="big" id="stash">Skateboard opbergen</button>' : ''}<button class="big" id="bBack">← Terug</button></div></div>`;
+      body.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => {
+        setLook({ [b.dataset.f]: b.dataset.v }); SOUND.pop();
+        if (b.dataset.f === 'boardArt') flipped = true;
+        paint();
+      }));
+      $('#flip').addEventListener('click', () => { flipped = !flipped; $('#deck').classList.toggle('flipped', flipped); $('#flip').textContent = `🔄 Draai om · nu: ${flipped ? 'onderkant' : 'bovenkant'}`; SOUND.whee(); });
+      $('#take').addEventListener('click', () => { setLook({ board: 'ja' }); state.onBoard = true; store.set('onBoard', true); SOUND.yay(); toast('Je hebt je skateboard! Zoef! 🛹', 2400); paint(); });
+      if ($('#stash')) $('#stash').addEventListener('click', () => { setLook({ board: 'geen' }); state.onBoard = false; store.set('onBoard', false); SOUND.pop(); paint(); });
+      $('#bBack').addEventListener('click', back);
+    };
+    paint(); body.scrollTop = 0;
+  }
+  ROOMS.kast = body => wardrobe(body, null);
+  const SPECIAL_ROOMS = { kast: { name: 'Kledingkast', icon: '👗', wall: '#FFE3EE' } };
+
+  // ---- The button above Defne's head (like a name tag): opens a small menu ----
+  function placeHeadBtn() {
+    const b = $('#headBtn'); if (!b) return;
+    const pos = !roomOpen && !introOpen && !activity && R.headScreen ? R.headScreen() : null;
+    b.hidden = !pos;
+    if (pos) { b.style.left = pos.x + 'px'; b.style.top = pos.y + 'px'; const m = $('#headMenu'); if (!m.hidden) { m.style.left = pos.x + 'px'; m.style.top = pos.y + 'px'; } }
+  }
+  function closeHeadMenu() { const m = $('#headMenu'); if (m) m.hidden = true; }
+  function headMenu() {
+    const m = $('#headMenu'), has = state.look.board !== 'geen';
+    if (!m.hidden) return closeHeadMenu();
+    m.innerHTML = `<button data-hm="kast">👗 Kleren</button>
+      <button data-hm="board">🛹 ${has ? (state.onBoard ? 'Van het skateboard' : 'Op het skateboard') : 'Skateboard maken'}</button>
+      ${riding ? '' : '<button data-hm="home">🏠 Naar huis</button>'}`;
+    m.hidden = false; placeHeadBtn(); SOUND.pop();
+  }
+  function headAction(a) {
+    closeHeadMenu();
+    if (a === 'kast') openRoom('kast');
+    if (a === 'board') {
+      if (state.look.board === 'geen') { openRoom('kast'); boardShop($('#roomBody'), () => wardrobe($('#roomBody'), null)); }
+      else { state.onBoard = !state.onBoard; store.set('onBoard', state.onBoard); R.drawPlayer(); }
+    }
+    if (a === 'home') tap.place('huisDefne');
   }
 
   ROOMS.huisNisan = body => {
@@ -688,7 +811,7 @@
         <rect x="70" y="118" width="40" height="302" fill="#C7CCD6"/><rect x="790" y="118" width="40" height="302" fill="#C7CCD6"/>
         <path d="M70 130 H110 M790 130 H830" stroke="#E0483D" stroke-width="6"/>
         <text x="450" y="250" text-anchor="middle" font-size="48" fill="#FF6FA5" opacity=".35" font-weight="700">SKATE</text>
-        <g id="sk"><g id="skRot"><g id="skBoard">${boardSVG(state.look.boardColor)}</g><g id="skBody" transform="translate(0 -8)">${personSVG(state.look, { noShadow: true })}</g></g></g>
+        <g id="sk"><g id="skRot"><g id="skBoard">${boardSVG(state.look.boardColor, state.look.wheelColor)}</g><g id="skBody" transform="translate(0 -8)">${personSVG(state.look, { noShadow: true })}</g></g></g>
       </svg><div id="trickMsg"></div></div>
       <div class="panel"><div class="score">Punten: <span id="skScore">0</span> · Record: <span id="skBest">${state.skateBest}</span></div>
       <div class="pump"><button class="big" id="pumpL" aria-label="Naar links">◀</button><button class="big" id="pumpR" aria-label="Naar rechts">▶</button></div>
@@ -770,6 +893,11 @@
 
   function boot(renderer) {
     R = renderer;
+    $('#viewport').insertAdjacentHTML('beforeend', `<button class="head-btn" id="headBtn" hidden aria-label="Menu van Defne"><span class="hb-ico">⭐</span><span class="hb-name">Defne</span></button><div class="head-menu" id="headMenu" hidden></div>`);
+    $('#headBtn').addEventListener('click', e => { e.stopPropagation(); headMenu(); });
+    $('#headBtn').addEventListener('pointerdown', e => e.stopPropagation());
+    $('#headMenu').addEventListener('pointerdown', e => e.stopPropagation());
+    $('#headMenu').addEventListener('click', e => { const b = e.target.closest('[data-hm]'); if (b) headAction(b.dataset.hm); });
     $('#startBtn').addEventListener('click', startCity);
     $('#soundBtn').addEventListener('click', () => { Sommen.soundOn = !Sommen.soundOn; store.set('sound', Sommen.soundOn); $('#soundBtn').textContent = Sommen.soundOn ? '🔊' : '🔇'; });
     $('#soundBtn').textContent = Sommen.soundOn ? '🔊' : '🔇';
@@ -785,7 +913,7 @@
 
   window.Stad = {
     $, pick, clamp, later, store, state, SOUND, sweep, boot, tap,
-    DEFAULT_LOOK, NISAN_LOOK, HAIR, HATS, SKIN, personSVG, misemSVG, horseSVG, quadSVG, boardSVG, DEFNE_HORSE, BABY_HORSE,
+    DEFAULT_LOOK, NISAN_LOOK, HAIR, HATS, SKIN, personSVG, misemSVG, horseSVG, quadSVG, boardSVG, deckSVG, ARTS, DEFNE_HORSE, BABY_HORSE,
     W, H, PLACES, ZONES, PLAY, doorOf, nisanPos, P, M, horse, baby, blocked, findPath,
     boardOn, riding: () => riding, inRoom: () => !!roomOpen, inIntro: () => introOpen
   };

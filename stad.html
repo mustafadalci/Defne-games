@@ -292,7 +292,8 @@
     const pt = worldPoint(ev);
     Stad.tap.ground(pt.x, pt.y);
   });
-  Stad.boot({ drawPlayer, update: render, resize() { measure(); camera(); }, nisanSays, play });
+  const headScreen = () => ({ x: (P.x - cam.x) * scale, y: (P.y - (riding() ? 205 : boardOn() ? 128 : 120) - cam.y) * scale });
+  Stad.boot({ drawPlayer, update: render, resize() { measure(); camera(); }, nisanSays, play, headScreen });
 })();
 </script>
 </body>
