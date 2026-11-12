@@ -3,7 +3,9 @@
 Rekenspelletjes in eenvoudig Nederlands (groep 3/4): **Pizzeria Defne**, **Klas van Defne**, **Voetbalkaarten** en **Defne ve Nisan'ın Şehri** (een stad om in rond te lopen met Misem de stokstaart).
 
 - `index.html` – startpagina met alle spellen
-- `pizza.html`, `klas.html`, `voetbal.html`, `stad.html` – de spellen
+- `pizza.html`, `klas.html`, `voetbal.html`, `stad.html`, `stad3d.html` – de spellen
+- `stad-kern.js`, `stad.css` – wat de 2D- en 3D-stad delen (kamers, kleding, Misem, lopen)
+- `vendor/three.module.min.js` – Three.js r160 (MIT, zie `vendor/three-LICENSE`) voor de 3D-stad
 - `sommen.js` – gedeelde sommen (tot 20 / 30 / 50) en het antwoordtoetsenbord
 - `sw.js`, `pwa.js`, `manifest.webmanifest` – offline spelen en installeren als app
 
