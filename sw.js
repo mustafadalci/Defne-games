@@ -1,6 +1,6 @@
 // Offline support: every file the games need is cached on first visit.
 // Bump VERSION when files are added or removed.
-const VERSION = 'defne-v13';
+const VERSION = 'defne-v14';
 const FILES = [
   './', 'index.html', 'pizza.html', 'klas.html', 'voetbal.html', 'stad.html', 'stad3d.html', 'stad.css', 'stad-kern.js', 'vendor/three.module.min.js', 'sommen.js', 'pwa.js', 'manifest.webmanifest',
   'fonts/fonts.css', 'fonts/fredoka-latin-1.woff2', 'fonts/fredoka-latin-ext-0.woff2',

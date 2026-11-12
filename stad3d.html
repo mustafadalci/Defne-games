@@ -24,6 +24,8 @@
   box-shadow: 0 3px 0 rgba(0,0,0,.12); white-space: nowrap; animation: popin .25s ease-out both;
 }
 .say3d::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -7px; border: 7px solid transparent; border-top-color: #fff; }
+.zoom { position: absolute; z-index: 3; right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; }
+.zoom .icon-btn { width: 52px; height: 52px; font-size: 1.6rem; background: #fff; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
 .loading { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 1.4rem; color: #fff; }
 </style>
 </head>
@@ -40,6 +42,7 @@
   <div class="loading" id="loading">De stad wordt gebouwd…</div>
   <canvas id="gl" aria-label="De stad in 3D"></canvas>
   <div class="say3d" id="say3d" hidden></div>
+  <div class="zoom"><button class="icon-btn" id="zoomIn" aria-label="Inzoomen">＋</button><button class="icon-btn" id="zoomOut" aria-label="Uitzoomen">－</button></div>
   <div class="toast gone" id="toast" aria-live="polite"></div>
   <div class="hud" id="hud"></div>
 
@@ -79,12 +82,15 @@ const gl = new THREE.WebGLRenderer({ canvas, antialias: true });
 gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 gl.shadowMap.enabled = true;
 gl.shadowMap.type = THREE.PCFSoftShadowMap;
-gl.toneMapping = THREE.ACESFilmicToneMapping;
-gl.toneMappingExposure = 1.05;
+// Township-like look: bright, saturated colours (no filmic tone mapping).
+gl.toneMapping = THREE.NoToneMapping;
 const scene = new THREE.Scene();
 const HORIZON = '#D7ECFA', ZENITH = '#4E9BE0';
-scene.fog = new THREE.Fog(HORIZON, 45, 110);
-const camera = new THREE.PerspectiveCamera(45, 1, .1, 400);
+scene.background = new THREE.Color('#9ED8F5');
+// An isometric camera, turned 45° so the streets run diagonally across the screen; zoom changes VIEW (half the visible height).
+const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, .1, 300);
+let VIEW = 10;
+const VIEW_MIN = 5, VIEW_MAX = 30;
 
 // Sky: a big dome with a vertical gradient and a soft glow around the sun; it also lights the scene (environment map).
 const SUN_DIR = new THREE.Vector3(12, 26, 10).normalize();
@@ -96,14 +102,13 @@ function skyDome(radius) {
     fragmentShader: 'uniform vec3 top; uniform vec3 bottom; uniform vec3 sun; varying vec3 vDir; void main() { float h = max(vDir.y, 0.0); vec3 c = mix(bottom, top, pow(h, 0.55)); float g = pow(max(dot(vDir, sun), 0.0), 64.0); c += vec3(1.0, 0.92, 0.75) * g * 0.8; if (vDir.y < 0.0) c = mix(bottom, vec3(0.55, 0.68, 0.45), min(1.0, -vDir.y * 4.0)); gl_FragColor = vec4(c, 1.0); }'
   }));
 }
-const sky = skyDome(300); scene.add(sky);
 {
   const pmrem = new THREE.PMREMGenerator(gl), envScene = new THREE.Scene();
   envScene.add(skyDome(50));
   scene.environment = pmrem.fromScene(envScene, .02).texture;
 }
-scene.add(new THREE.HemisphereLight('#EAF4FF', '#6E8F4E', .45));
-const sun = new THREE.DirectionalLight('#FFF0D4', 2.9);
+scene.add(new THREE.HemisphereLight('#F2F8FF', '#7DA35A', 1.1));
+const sun = new THREE.DirectionalLight('#FFF4DC', 2.2);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, near: 1, far: 100 });
@@ -149,10 +154,10 @@ function speckle(x, s, n, colors, r0, r1, alpha = .35) {
 }
 const DRAW = {
   grass(x, s) {
-    x.fillStyle = '#76AE4C'; x.fillRect(0, 0, s, s);
-    speckle(x, s, 1400, ['#5C963A', '#8CC45E', '#6AA342', '#A2D46E', '#4E8532'], 1, 3.5);
+    x.fillStyle = '#7DCB45'; x.fillRect(0, 0, s, s);
+    speckle(x, s, 1400, ['#6AB83A', '#94D95C', '#74C23F', '#A8E06C', '#5FA933'], 1, 3.5);
     x.lineWidth = 1.2;
-    for (let i = 0; i < 900; i++) { const X = rnd() * s, Y = rnd() * s; x.strokeStyle = rnd() < .5 ? '#4F8A33' : '#A6D873'; x.globalAlpha = .55; x.beginPath(); x.moveTo(X, Y); x.lineTo(X + (rnd() - .5) * 3, Y - 3 - rnd() * 5); x.stroke(); }
+    for (let i = 0; i < 900; i++) { const X = rnd() * s, Y = rnd() * s; x.strokeStyle = rnd() < .5 ? '#5DA532' : '#B4E57A'; x.globalAlpha = .55; x.beginPath(); x.moveTo(X, Y); x.lineTo(X + (rnd() - .5) * 3, Y - 3 - rnd() * 5); x.stroke(); }
     x.globalAlpha = 1;
   },
   asphalt(x, s) { x.fillStyle = '#5A606B'; x.fillRect(0, 0, s, s); speckle(x, s, 2500, ['#4A4F58', '#6E7480', '#7D838E', '#3F444C'], .5, 1.8, .5); },
@@ -224,7 +229,7 @@ function makePerson(L, o = {}) {
   if (o.board) {
     body.position.y = .2;
     g.add(mesh(new THREE.CapsuleGeometry(.24, .95, 4, 12).rotateX(Math.PI / 2).scale(1, .22, 1), L.boardColor, 0, .14, 0));
-    [[-.17, .5], [.17, .5], [-.17, -.5], [.17, -.5]].forEach(([x, z]) => { const w = cyl(.065, .065, .07, '#EEEEEE', x, .065, z, 12); w.rotation.z = Math.PI / 2; g.add(w); });
+    [[-.17, .5], [.17, .5], [-.17, -.5], [.17, -.5]].forEach(([x, z]) => { const w = cyl(.065, .065, .07, L.wheelColor || '#EEEEEE', x, .065, z, 12); w.rotation.z = Math.PI / 2; g.add(w); });
     [.5, -.5].forEach(z => g.add(box(.36, .03, .06, METAL, 0, .1, z)));
   }
   const leg = side => {
@@ -381,12 +386,11 @@ function fadeBlockers(dt) {
   // look from the camera to Defne's feet, middle and head: whatever is in the way fades
   [.3, 1.3, 2.3].forEach(h => {
     chest.set(P.x * S, h, P.y * S);
-    const dir = chest.clone().sub(camera.position), dist = dir.length();
-    fadeRay.set(camera.position, dir.normalize()); fadeRay.far = dist - .4;
+    const from = chest.clone().addScaledVector(ISO, 60);
+    fadeRay.set(from, ISO.clone().negate()); fadeRay.far = 59.6;
     fadeRay.intersectObjects(fadables, true).forEach(hh => { let o = hh.object; while (o && !fadables.includes(o)) o = o.parent; if (o) hitNow.add(o); });
   });
   // the welcome board also fades while the camera stands behind it
-  fadables.forEach(g => { if (g.userData.betweenZ && camera.position.z > g.userData.betweenZ && P.y * S < g.userData.betweenZ) hitNow.add(g); });
   fadables.forEach(g => {
     const want = hitNow.has(g) ? .28 : 1, f = g.userData.fade + (want - g.userData.fade) * Math.min(1, dt * 8);
     if (Math.abs(f - g.userData.fade) < .002 && (f === 1 || hitNow.has(g))) return;
@@ -692,13 +696,7 @@ function cityStatic() {
    [-140, 200], [-160, 800], [-130, 1500], [2560, 200], [2600, 900], [2560, 1650], [200, -140], [1000, -160], [2200, -120], [300, 1880], [1400, 1900], [2300, 1860]].forEach(([x, y], i) => g.add(tree(x, y, .85 + (i % 3) * .12)));
   g.add(flowers(1700, 1180)); g.add(flowers(540, 690)); g.add(flowers(1860, 690)); g.add(flowers(2120, 680));
   g.add(playground()); g.add(manege());
-  // a few soft clouds drifting high above the city
-  const cloudMat = std({ color: '#FFFFFF', roughness: 1, emissive: '#FFFFFF', emissiveIntensity: .25 });
-  for (let i = 0; i < 9; i++) {
-    const c = group(); c.userData.cloud = true; c.userData.keep = true;
-    for (let k = 0; k < 5; k++) { const p = mesh(new THREE.IcosahedronGeometry(1.6 + rnd() * 1.4, 2), cloudMat, k * 1.8 - 3.6, rnd() * .8, (rnd() - .5) * 2); p.castShadow = false; p.scale.y = .6; c.add(p); }
-    c.position.set(-30 + i * 17, 32 + rnd() * 8, -20 + rnd() * 80); g.add(c);
-  }
+  g.add(nature());
   PLACES.forEach(p => g.add(building(p)));
   // welcome board over the entrance road
   {
@@ -745,6 +743,84 @@ function mergeStatic(root) {
     const merged = new THREE.Mesh(geo, mat); merged.castShadow = cast; merged.receiveShadow = true;
     box.add(merged);
   });
+}
+
+// ================= Nature around the city: forest, river, ponds, rocks, flower patches, plaza, sandy paths =================
+function ribbon(points, width, y, material) {
+  const curve = new THREE.CatmullRomCurve3(points), n = 220, pos = [], idx = [];
+  for (let i = 0; i <= n; i++) {
+    const p = curve.getPointAt(i / n), t = curve.getTangentAt(i / n), nx = -t.z, nz = t.x, l = Math.hypot(nx, nz) || 1;
+    const w = width * (1 + .18 * Math.sin(i * .21));
+    pos.push(p.x + nx / l * w / 2, y, p.z + nz / l * w / 2, p.x - nx / l * w / 2, y, p.z - nz / l * w / 2);
+    if (i) { const k = (i - 1) * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, material); m.receiveShadow = true;
+  return { mesh: m, curve };
+}
+function nature() {
+  const g = group();
+  // the river on the east side, with sandy banks
+  const riverPts = [[70, -50], [64, -25], [72, -2], [66, 20], [73, 42], [65, 64], [71, 95]].map(([x, z]) => new THREE.Vector3(x, 0, z));
+  const bank = ribbon(riverPts, 9, .03, std({ color: '#EBD49A', roughness: 1 }));
+  const river = ribbon(riverPts, 5, .07, std({ color: '#2E95E0', roughness: .12, metalness: .15 }));
+  const edge = ribbon(riverPts, 5.8, .05, std({ color: '#7FC6F2', roughness: .3 }));
+  g.add(bank.mesh, edge.mesh, river.mesh);
+  const riverSamples = [...Array(120)].map((_, i) => river.curve.getPointAt(i / 119));
+  const nearRiver = (x, z, d) => riverSamples.some(p => Math.hypot(p.x - x, p.z - z) < d);
+  // ponds in the western woods
+  [[-12, 8, 4], [-9, 36, 3], [-22, 22, 2.6]].forEach(([x, z, r]) => {
+    const sand = flatOn(mesh(new THREE.CircleGeometry(r + 1.2, 32), '#EBD49A', x, .03, z)); sand.rotation.x = -Math.PI / 2; g.add(sand);
+    const w = flatOn(mesh(new THREE.CircleGeometry(r, 32), std({ color: '#3AA3E6', roughness: .12, metalness: .15 }), x, .06, z)); w.rotation.x = -Math.PI / 2; g.add(w);
+  });
+  const inCity = (x, z) => x > -2 && x < 61.5 && z > -1.5 && z < 46;
+  const ok = (x, z) => !inCity(x, z) && !nearRiver(x, z, 6) && ![[-12, 8, 6.5], [-9, 36, 5.5], [-22, 22, 5]].some(([px, pz, r]) => Math.hypot(px - x, pz - z) < r);
+  // forest: instanced round trees and pines (a few draw calls for hundreds of trees)
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color();
+  const N = 420, roundT = [], pineT = [];
+  for (let tries = 0; roundT.length + pineT.length < N && tries < 20000; tries++) {
+    const x = -48 + rnd() * 160, z = -48 + rnd() * 150; if (!ok(x, z)) continue;
+    (rnd() < .3 ? pineT : roundT).push([x, z, .8 + rnd() * .6, rnd() * 6.28]);
+  }
+  const inst = (geo, matl, list, place, color) => {
+    const im = new THREE.InstancedMesh(geo, matl, list.length);
+    list.forEach((t, i) => { place(t); im.setMatrixAt(i, m4.compose(v, q, sc)); if (color) im.setColorAt(i, color(t, i)); });
+    im.castShadow = true; im.receiveShadow = true; g.add(im); return im;
+  };
+  const white = std({ color: '#FFFFFF', roughness: .95 }), bark = std({ color: '#7A5234', roughness: 1 });
+  inst(new THREE.CylinderGeometry(.16, .26, 1.8, 7).translate(0, .9, 0), bark, roundT, ([x, z, s]) => { v.set(x, 0, z); q.identity(); sc.setScalar(s); });
+  [[0, 2.5, 0, 1.25], [.7, 2.15, .3, .9], [-.65, 2.2, -.25, .92]].forEach(([ox, oy, oz, r], k) =>
+    inst(new THREE.IcosahedronGeometry(r, 1), white, roundT, ([x, z, s, a]) => { v.set(x + (ox * Math.cos(a) - oz * Math.sin(a)) * s, oy * s, z + (ox * Math.sin(a) + oz * Math.cos(a)) * s); q.identity(); sc.setScalar(s); },
+      (t, i) => col.setHSL(.27 + ((i * 7 + k * 3) % 10) * .006, .62, .34 + k * .05)));
+  inst(new THREE.CylinderGeometry(.12, .18, 1.1, 6).translate(0, .55, 0), bark, pineT, ([x, z, s]) => { v.set(x, 0, z); q.identity(); sc.setScalar(s); });
+  [[1.35, 1.6, 1.5], [1.05, 1.4, 2.4], [.7, 1.1, 3.2]].forEach(([r, h, y], k) =>
+    inst(new THREE.ConeGeometry(r, h, 9), white, pineT, ([x, z, s]) => { v.set(x, y * s, z); q.identity(); sc.setScalar(s); }, (t, i) => col.setHSL(.36, .5, .26 + k * .04 + (i % 5) * .01)));
+  // rocks along the river and in the woods
+  const rocks = [];
+  for (let tries = 0; rocks.length < 140 && tries < 9000; tries++) {
+    const x = -48 + rnd() * 160, z = -48 + rnd() * 150;
+    if (inCity(x, z) || nearRiver(x, z, 2.8)) continue;
+    if (nearRiver(x, z, 6) || rnd() < .25) rocks.push([x, z, .25 + rnd() * .5, rnd() * 6]);
+  }
+  inst(new THREE.DodecahedronGeometry(1, 0), std({ color: '#FFFFFF', roughness: .9 }), rocks, ([x, z, s, a]) => { v.set(x, s * .35, z); q.setFromEuler(new THREE.Euler(a, a * 1.7, 0)); sc.set(s * 1.3, s * .8, s); }, (t, i) => col.setHSL(.08, .05, .55 + (i % 4) * .06));
+  // flower patches (in the woods and on the city's grass)
+  const flowersAt = [];
+  for (let tries = 0; flowersAt.length < 1600 && tries < 40000; tries++) {
+    const cx = -45 + rnd() * 155, cz = -45 + rnd() * 145;
+    if (nearRiver(cx, cz, 5) || Stad.blocked(cx / S, cz / S, 30) || Math.abs(cz - 20) < 2.5 || Math.abs(cx - 30) < 2.5) continue;
+    if (inCity(cx, cz) && (cx > 3 && cx < 25.5 && cz > 31 && cz < 41.6 || cx > 34 && cx < 57.5 && cz > 30.5 && cz < 41.6)) continue;
+    for (let k = 0; k < 14; k++) flowersAt.push([cx + (rnd() - .5) * 2.4, cz + (rnd() - .5) * 2.4, flowersAt.length]);
+  }
+  const fc = ['#FF5E8E', '#FFD23F', '#FFFFFF', '#9B6BFF', '#FF8A3D', '#FF3B3B'];
+  inst(new THREE.IcosahedronGeometry(.11, 0).translate(0, .3, 0), std({ color: '#FFFFFF', roughness: .7 }), flowersAt, ([x, z]) => { v.set(x, 0, z); q.identity(); sc.setScalar(.8 + rnd() * .7); }, (t, i) => col.set(fc[(Math.floor(i / 14) + i) % 6]));
+  inst(new THREE.ConeGeometry(.16, .32, 5).translate(0, .16, 0), std({ color: '#FFFFFF', roughness: 1 }), flowersAt.filter((_, i) => i % 2), ([x, z]) => { v.set(x + .1, 0, z - .1); q.identity(); sc.setScalar(1); }, () => col.setHSL(.3, .55, .33));
+  // the plaza around the fountain: paving, planters, lamps and benches
+  g.add(flatOn(box(6.6, .05, 3.0, surface('paving', '#F3E9DA', 5.5, 2.5), 24.7, .03, 16.6)));
+  [[21.8, 15.4], [27.6, 15.4]].forEach(([x, z]) => { g.add(box(1.1, .45, 1.1, '#C98A4B', x, .22, z)); for (let k = 0; k < 6; k++) g.add(flatOn(sph(.14, fc[k], x - .35 + (k % 3) * .35, .5, z - .2 + Math.floor(k / 3) * .4, 8))); g.add(mesh(new THREE.IcosahedronGeometry(.4, 1), '#4C9A45', x, .75, z)); });
+  // sandy paths to the playground and the riding school
+  const path = (x, z, w, d) => g.add(flatOn(box(w, .04, d, surface('sand', '#F0D9A0', w / 2, d / 2), x, .025, z)));
+  path(26.7, 37, 3, 1.6); path(33.2, 36.2, 2.8, 1.6);
+  return g;
 }
 
 // ================= Moving things =================
@@ -852,35 +928,48 @@ function placeBubble() {
   b.style.top = ((1 - headPos.y) / 2 * canvas.clientHeight) + 'px';
 }
 
-// ================= Camera, picking, loop =================
-let zoom = 1;
-const look = new THREE.Vector3(), camPos = new THREE.Vector3();
+// ================= Camera, zoom, picking =================
+const look = new THREE.Vector3();
+const ISO = new THREE.Vector3(Math.sin(Math.PI / 4) * Math.cos(.62), Math.sin(.62), Math.cos(Math.PI / 4) * Math.cos(.62)); // 45° turn, ~36° down
 function resize() {
   const r = $('#viewport').getBoundingClientRect();
   gl.setSize(r.width, r.height, false);
-  camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
-  zoom = camera.aspect < .8 ? 1.35 : camera.aspect < 1.2 ? 1.15 : 1;
+  camera.userData.aspect = r.width / r.height;
+  applyView();
 }
+function applyView() {
+  const a = camera.userData.aspect || 1, v = VIEW * (a < .8 ? 1.25 : 1);
+  Object.assign(camera, { left: -v * a, right: v * a, top: v, bottom: -v });
+  camera.updateProjectionMatrix();
+  const sh = v * Math.max(1, a) * 1.25;
+  Object.assign(sun.shadow.camera, { left: -sh, right: sh, top: sh, bottom: -sh });
+  sun.shadow.camera.updateProjectionMatrix();
+}
+function setView(v) { VIEW = Math.max(VIEW_MIN, Math.min(VIEW_MAX, v)); applyView(); }
 function focusPoint() {
   if (act) { const p = PLAY[act.id]; return [p.x * S, p.y * S]; }
   return [P.x * S, P.y * S];
 }
 function updateCamera(dt, snap) {
   const [fx, fz] = focusPoint();
-  const want = new THREE.Vector3(fx, 1.5, fz);
-  look.lerp(want, snap ? 1 : Math.min(1, dt * 6));
-  camPos.set(look.x, look.y + 6.2 * zoom, look.z + 9.5 * zoom);
-  camera.position.lerp(camPos, snap ? 1 : Math.min(1, dt * 6));
+  look.lerp(new THREE.Vector3(fx, 1, fz), snap ? 1 : Math.min(1, dt * 6));
+  camera.position.copy(look).addScaledVector(ISO, 80);
   camera.lookAt(look);
-  sun.position.copy(look).addScaledVector(SUN_DIR, 40); sun.target.position.copy(look);
-  sky.position.copy(camera.position);
+  sun.position.copy(look).addScaledVector(SUN_DIR, 50); sun.target.position.copy(look);
+}
+// Arrow keys follow the screen: up walks away from the camera, right walks to the right of the screen.
+const keyDir = (vx, vy) => [Math.SQRT1_2 * (vx + vy), Math.SQRT1_2 * (vy - vx)];
+const headV = new THREE.Vector3();
+function headScreen() {
+  headV.set(P.x * S, riding() ? 4.9 : boardOn() ? 2.95 : 2.75, P.y * S).project(camera);
+  return { x: (headV.x + 1) / 2 * canvas.clientWidth, y: (1 - headV.y) / 2 * canvas.clientHeight };
 }
 
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
-canvas.addEventListener('pointerdown', ev => {
+function tapAt(cx, cy) {
   if (Stad.inIntro() || Stad.inRoom()) return;
   const r = canvas.getBoundingClientRect();
-  ndc.set((ev.clientX - r.left) / r.width * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const hits = ray.intersectObjects(pickables, true);
   for (const h of hits) {
@@ -893,12 +982,36 @@ canvas.addEventListener('pointerdown', ev => {
     if (t.npc) return Stad.tap.npc();
   }
   if (ray.ray.intersectPlane(groundPlane, hit)) Stad.tap.ground(hit.x / S, hit.z / S);
+}
+// One finger taps (walk there); two fingers pinch to zoom; the mouse wheel zooms too.
+const touches = new Map();
+let pinch = null;
+canvas.addEventListener('pointerdown', e => {
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t: performance.now() });
+  canvas.setPointerCapture(e.pointerId);
+  if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), v: VIEW }; }
 });
+canvas.addEventListener('pointermove', e => {
+  const t = touches.get(e.pointerId); if (!t) return;
+  t.x = e.clientX; t.y = e.clientY;
+  if (pinch && touches.size === 2) { const [a, b] = [...touches.values()]; setView(pinch.v * pinch.d / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y))); }
+});
+const lift = e => {
+  const t = touches.get(e.pointerId); touches.delete(e.pointerId);
+  if (!t) return;
+  if (pinch) { if (touches.size < 2) pinch = touches.size ? { done: true } : null; return; }
+  if (Math.hypot(t.x - t.x0, t.y - t.y0) < 12 && performance.now() - t.t < 600) tapAt(e.clientX, e.clientY);
+};
+canvas.addEventListener('pointerup', lift);
+canvas.addEventListener('pointercancel', e => { touches.delete(e.pointerId); if (!touches.size) pinch = null; });
+canvas.addEventListener('wheel', e => { e.preventDefault(); setView(VIEW * Math.exp(e.deltaY * .0012)); }, { passive: false });
+$('#zoomIn').addEventListener('click', () => setView(VIEW / 1.3));
+$('#zoomOut').addEventListener('click', () => setView(VIEW * 1.3));
 
 const movers = [];
 let clock = performance.now(), T = 0;
 // On a slow tablet: after the first seconds, drop shadows and render at normal pixel density.
-const perf = { frames: 0, time: 0, done: false };
+const perf = { frames: 0, time: 0, done: false, lowZoom: false };
 function adapt(dt) {
   if (perf.done) return;
   perf.frames++; perf.time += dt;
@@ -927,7 +1040,7 @@ function frame(now) {
       else { o.position.x += Math.sin(T * .6) * dt * .5; o.rotation.y = Math.cos(T * .6) > 0 ? Math.PI / 2 : -Math.PI / 2; }
     });
     updateCamera(dt);
-    fadeBlockers(dt);
+    if (!pinch && touches.size === 0 && !perf.lowZoom) fadeBlockers(dt);
     gl.render(scene, camera);
     placeBubble();
   }
@@ -947,7 +1060,7 @@ function frame(now) {
   nisanG = tagged(makePerson(NISAN_LOOK), { npc: true }); nisanG.position.set(nisanPos.x * S, 0, nisanPos.y * S);
   scene.add(horseG, babyG, nisanG);
   resize();
-  Stad.boot({ drawPlayer, update() {}, resize, nisanSays, play });
+  Stad.boot({ drawPlayer, update() {}, resize, nisanSays, play, keyDir, headScreen });
   updateCamera(0, true);
   $('#loading').remove();
   window.stad3d = { gl, scene };  // handy for checking draw calls in the browser console
