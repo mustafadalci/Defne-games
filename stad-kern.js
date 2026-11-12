@@ -222,22 +222,33 @@
   let target = null, onArrive = null;
 
   const OBST = PLACES.map(p => ({ x: p.x - 10, y: p.y - 30, w: p.w + 20, h: p.h + 34 }));
-  const blocked = (x, y) => OBST.some(r => x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h);
+  const blocked = (x, y, m = 0) => OBST.some(r => x > r.x - m && x < r.x + r.w + m && y > r.y - m && y < r.y + r.h + m);
 
   // Path finding on a 20-unit grid (A*), then shortened to the fewest straight stretches.
   const CELL = 20, GW = Math.ceil(W / CELL), GH = Math.ceil(H / CELL);
   const solid = new Uint8Array(GW * GH);
-  for (let gy = 0; gy < GH; gy++) for (let gx = 0; gx < GW; gx++) solid[gy * GW + gx] = blocked(gx * CELL + CELL / 2, gy * CELL + CELL / 2) ? 1 : 0;
+  for (let gy = 0; gy < GH; gy++) for (let gx = 0; gx < GW; gx++) solid[gy * GW + gx] = blocked(gx * CELL + CELL / 2, gy * CELL + CELL / 2, 12) ? 1 : 0;
   function clearLine(a, b) {
     const n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 8);
-    for (let i = 1; i <= n; i++) if (blocked(a.x + (b.x - a.x) * i / n, a.y + (b.y - a.y) * i / n)) return false;
+    // keep a little room from walls, so a straight stretch never clips a building's corner
+    for (let i = 1; i <= n; i++) if (blocked(a.x + (b.x - a.x) * i / n, a.y + (b.y - a.y) * i / n, i === n ? 0 : 8)) return false;
     return true;
   }
   function findPath(from, to) {
     if (clearLine(from, to)) return [to];
     const cell = q => Math.min(GW - 1, Math.max(0, Math.floor(q.x / CELL))) + Math.min(GH - 1, Math.max(0, Math.floor(q.y / CELL))) * GW;
-    const start = cell(from), goal = cell(to);
+    let start = cell(from);
+    const goal = cell(to);
     if (solid[goal]) return [to];
+    // standing right against a wall: start from the nearest free cell
+    if (solid[start]) {
+      let best = -1, bd = Infinity;
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+        const x = start % GW + dx, y = Math.floor(start / GW) + dy, j = y * GW + x;
+        if (x >= 0 && y >= 0 && x < GW && y < GH && !solid[j] && dx * dx + dy * dy < bd) { bd = dx * dx + dy * dy; best = j; }
+      }
+      if (best >= 0) start = best;
+    }
     const g = new Float32Array(GW * GH).fill(Infinity), came = new Int32Array(GW * GH).fill(-1), heap = [];
     const hval = i => Math.hypot(i % GW - goal % GW, Math.floor(i / GW) - Math.floor(goal / GW));
     const push = (i, f) => { heap.push([f, i]); let k = heap.length - 1; while (k > 0) { const pk = (k - 1) >> 1; if (heap[pk][0] <= heap[k][0]) break; [heap[pk], heap[k]] = [heap[k], heap[pk]]; k = pk; } };
@@ -257,7 +268,7 @@
     }
     if (came[goal] < 0) return [to];
     const pts = [to];
-    for (let i = came[goal]; i >= 0 && i !== start; i = came[i]) pts.unshift({ x: (i % GW) * CELL + CELL / 2, y: Math.floor(i / GW) * CELL + CELL / 2 });
+    for (let i = came[goal]; i >= 0; i = came[i]) { pts.unshift({ x: (i % GW) * CELL + CELL / 2, y: Math.floor(i / GW) * CELL + CELL / 2 }); if (i === start) break; }
     const out = []; let cur = from, k = 0;
     while (k < pts.length) {
       let far = k;
@@ -299,7 +310,10 @@
       if (!blocked(nx, ny)) { P.x = nx; P.y = ny; }
       else if (!blocked(nx, P.y)) P.x = nx;
       else if (!blocked(P.x, ny)) P.y = ny;
-      if (target && Math.hypot(P.x - ox, P.y - oy) < sp * .2) { target = null; onArrive = null; route = []; }
+      if (target && Math.hypot(P.x - ox, P.y - oy) < sp * .2) {
+        // stuck against a wall: try the next stretch of the route, or give up
+        if (route.length) target = route.shift(); else { target = null; onArrive = null; }
+      }
       if (Math.abs(vx) > .2) P.face = vx < 0 ? -1 : 1;
     }
     P.moving = len > 0;
@@ -772,7 +786,7 @@
   window.Stad = {
     $, pick, clamp, later, store, state, SOUND, sweep, boot, tap,
     DEFAULT_LOOK, NISAN_LOOK, HAIR, HATS, SKIN, personSVG, misemSVG, horseSVG, quadSVG, boardSVG, DEFNE_HORSE, BABY_HORSE,
-    W, H, PLACES, ZONES, PLAY, doorOf, nisanPos, P, M, horse, baby, blocked,
+    W, H, PLACES, ZONES, PLAY, doorOf, nisanPos, P, M, horse, baby, blocked, findPath,
     boardOn, riding: () => riding, inRoom: () => !!roomOpen, inIntro: () => introOpen
   };
 })();
