@@ -385,6 +385,8 @@ function fadeBlockers(dt) {
     fadeRay.set(camera.position, dir.normalize()); fadeRay.far = dist - .4;
     fadeRay.intersectObjects(fadables, true).forEach(hh => { let o = hh.object; while (o && !fadables.includes(o)) o = o.parent; if (o) hitNow.add(o); });
   });
+  // the welcome board also fades while the camera stands behind it
+  fadables.forEach(g => { if (g.userData.betweenZ && camera.position.z > g.userData.betweenZ && P.y * S < g.userData.betweenZ) hitNow.add(g); });
   fadables.forEach(g => {
     const want = hitNow.has(g) ? .28 : 1, f = g.userData.fade + (want - g.userData.fade) * Math.min(1, dt * 8);
     if (Math.abs(f - g.userData.fade) < .002 && (f === 1 || hitNow.has(g))) return;
@@ -708,7 +710,7 @@ function cityStatic() {
     const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
     const wood = mat('#B5793F'), sign = group(mesh(new THREE.BoxGeometry(8, 2, .25), [wood, wood, wood, wood, std({ map: tex, roughness: .7 }), wood], 0, 3.6, 0));
     [-3.4, 3.4].forEach(dx => sign.add(box(.3, 3.6, .3, '#8A5A2B', dx, 1.8, -.05)));
-    sign.position.set(X, 0, Z); g.add(fadable(sign));
+    sign.position.set(X, 0, Z); sign.userData.betweenZ = Z; g.add(fadable(sign));
   }
   return g;
 }
@@ -948,7 +950,7 @@ function frame(now) {
   Stad.boot({ drawPlayer, update() {}, resize, nisanSays, play });
   updateCamera(0, true);
   $('#loading').remove();
-  window.stad3d = { gl, scene, fadables };  // handy for checking draw calls in the browser console
+  window.stad3d = { gl, scene };  // handy for checking draw calls in the browser console
   requestAnimationFrame(frame);
 })();
 </script>
