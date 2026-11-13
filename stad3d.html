@@ -42,6 +42,7 @@
   <div class="loading" id="loading">De stad wordt gebouwd…</div>
   <canvas id="gl" aria-label="De stad in 3D"></canvas>
   <div class="say3d" id="say3d" hidden></div>
+  <div class="reader" id="reader3d" hidden style="z-index:6"></div>
   <div class="zoom"><button class="icon-btn" id="zoomIn" aria-label="Inzoomen">＋</button><button class="icon-btn" id="zoomOut" aria-label="Uitzoomen">－</button></div>
   <div class="toast gone" id="toast" aria-live="polite"></div>
   <div class="hud" id="hud"></div>
@@ -188,6 +189,20 @@ const DRAW = {
   },
   sand(x, s) { x.fillStyle = '#E8D3A0'; x.fillRect(0, 0, s, s); speckle(x, s, 2200, ['#D9C28A', '#F4E4BC', '#C9AF74'], .5, 1.6, .5); },
   concrete(x, s) { x.fillStyle = '#C8CCD2'; x.fillRect(0, 0, s, s); speckle(x, s, 1600, ['#B5BAC2', '#D9DCE1'], .5, 2.5, .4); x.strokeStyle = 'rgba(0,0,0,.12)'; x.lineWidth = 2; x.strokeRect(0, 0, s, s); },
+  planks(x, s) {
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 3; c++) {
+      const off = (r % 2) * s / 6, l = 46 + rnd() * 10;
+      x.fillStyle = `hsl(28, 48%, ${l}%)`; x.fillRect(c * s / 3 - off, r * s / 8, s / 3, s / 8);
+      x.strokeStyle = 'rgba(60,30,10,.35)'; x.lineWidth = 2; x.strokeRect(c * s / 3 - off, r * s / 8, s / 3, s / 8);
+      x.strokeStyle = 'rgba(60,30,10,.12)'; x.lineWidth = 1;
+      for (let k = 0; k < 3; k++) { const y = r * s / 8 + 4 + rnd() * (s / 8 - 8); x.beginPath(); x.moveTo(c * s / 3 - off, y); x.bezierCurveTo(c * s / 3 - off + 30, y + 3, c * s / 3 - off + 60, y - 3, c * s / 3 - off + s / 3, y); x.stroke(); }
+    }
+  },
+  wallpaper(x, s) {
+    x.fillStyle = '#F7ECD9'; x.fillRect(0, 0, s, s);
+    for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#F1E1C7' : '#F7ECD9'; x.fillRect(i * s / 8, 0, s / 8, s); }
+    x.fillStyle = 'rgba(214,150,120,.35)'; for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.beginPath(); x.arc(i * s / 8 + s / 16, j * s / 8 + (i % 2) * s / 16, 3, 0, 7); x.fill(); }
+  },
   meadow(x, s) { DRAW.grass(x, s); x.fillStyle = 'rgba(255,255,220,.18)'; x.fillRect(0, 0, s, s); }
 };
 // A tinted, repeating surface material; repeat is in tiles per face.
@@ -977,7 +992,9 @@ function headScreen() {
 
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
 function tapAt(cx, cy) {
-  if (Stad.inIntro() || Stad.inRoom()) return;
+  if (Stad.inIntro()) return;
+  if (lib.on) return libTap(cx, cy);
+  if (Stad.inRoom()) return;
   const r = canvas.getBoundingClientRect();
   ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
@@ -1035,7 +1052,8 @@ function adapt(dt) {
 }
 function frame(now) {
   const dt = Math.min(.05, (now - clock) / 1000); clock = now; T += dt;
-  if (!Stad.inRoom()) {
+  if (lib.on) { libStep(dt, T); gl.render(lib.scene, camera); }
+  else if (!Stad.inRoom()) {
     if (!Stad.inIntro()) adapt(dt);
     stepActivity(dt);
     playerRoot.position.set(P.x * S, 0, P.y * S);
@@ -1057,6 +1075,250 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// ================= The library inside, in 3D =================
+// A cut-away room (back and left walls) seen from the same isometric camera. Defne walks around, takes one of
+// Defne's or Nisan's books from the display racks, carries it, reads it (also in the armchair) and puts it back.
+const lib = { on: false, scene: null, P: { x: 0, z: 3.4 }, M: { x: -.9, z: 3.8 }, target: null, arrive: null, keys: new Set(), held: null, sitting: false, books: [], picks: [], anim: null, root: null, mk: null };
+const LIB_OBST = [[-5.2, 2.1, 1.25], [-6.3, 3.7, .45], [-6.25, .9, .55], [4, 2.2, 1.35]];
+function coverTexture(book) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 340;
+  const x = c.getContext('2d');
+  x.fillStyle = book.color; x.fillRect(0, 0, 256, 340);
+  x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(0, 0, 22, 340);
+  x.strokeStyle = 'rgba(255,255,255,.7)'; x.lineWidth = 6; x.strokeRect(34, 14, 208, 312);
+  x.font = '110px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(book.ico, 138, 120);
+  x.fillStyle = '#FFFFFF'; x.font = '700 30px Fredoka, "Comic Sans MS", sans-serif';
+  const words = book.title.split(' '), lines = []; let line = '';
+  words.forEach(w => { if (x.measureText(line + ' ' + w).width > 190 && line) { lines.push(line); line = w; } else line = line ? line + ' ' + w : w; });
+  lines.push(line);
+  lines.forEach((l, i) => x.fillText(l, 138, 236 + i * 34 - (lines.length - 1) * 10));
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+function buildLibrary() {
+  const sc = new THREE.Scene(); sc.background = new THREE.Color('#E8D6BC'); sc.environment = scene.environment;
+  sc.add(new THREE.HemisphereLight('#FFF6E8', '#B98A5E', 1.15));
+  const light = new THREE.DirectionalLight('#FFF0D8', 1.9); light.position.set(-6, 12, 9); light.castShadow = true;
+  light.shadow.mapSize.set(2048, 2048); Object.assign(light.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 }); light.shadow.bias = -.0005;
+  sc.add(light);
+  const lampLight = new THREE.PointLight('#FFD9A0', 6, 7, 2); lampLight.position.set(-6.3, 2.6, 3.7); sc.add(lampLight);
+  const wood = std({ color: '#8E5A33', roughness: .7 }), woodDark = std({ color: '#6E4326', roughness: .75 });
+  sc.add(flatOn(box(14.6, .2, 10.6, surface('planks', '#FFFFFF', 5, 4, { roughness: .6 }), 0, -.1, 0)));
+  sc.add(box(14.6, 5.2, .3, surface('wallpaper', '#FFFFFF', 6, 2.2), 0, 2.6, -5.15));
+  sc.add(box(.3, 5.2, 10.6, surface('wallpaper', '#FFFFFF', 4.4, 2.2), -7.15, 2.6, 0));
+  sc.add(box(14.6, 1.1, .1, woodDark, 0, .55, -4.96)); sc.add(box(.1, 1.1, 10.6, woodDark, -6.96, .55, 0));
+  sc.add(box(14.6, .14, .14, woodDark, 0, 5.2, -5.05)); sc.add(box(.14, .14, 10.6, woodDark, -7.05, 5.2, 0));
+  // tall bookshelves full of books (one instanced mesh for all the filler books)
+  const filler = [];
+  const shelfUnit = (cx, cz, rot, w = 3, h = 4.6) => {
+    const u = group();
+    u.add(box(w, h, .1, woodDark, 0, h / 2, -.3)); [-1, 1].forEach(sd => u.add(box(.12, h, .62, wood, sd * (w / 2 - .06), h / 2, 0)));
+    u.add(box(w + .16, .14, .7, wood, 0, h, 0));
+    const ys = [.12, 1.02, 1.92, 2.82, 3.72];
+    ys.forEach(y => u.add(box(w - .1, .08, .6, wood, 0, y, 0)));
+    ys.forEach(y => {
+      let x = -w / 2 + .18;
+      while (x < w / 2 - .2) {
+        const bw = .1 + rnd() * .1, bh = .52 + rnd() * .26, lean = rnd() < .08 ? .25 : 0;
+        if (rnd() < .06) { x += .25; continue; }
+        filler.push({ unit: u, x: x + bw / 2, y: y + .04 + bh / 2, bw, bh, lean, hue: rnd() });
+        x += bw + .01 + (lean ? .12 : 0);
+      }
+    });
+    u.position.set(cx, 0, cz); u.rotation.y = rot; sc.add(u); u.updateMatrixWorld(true);
+    return u;
+  };
+  shelfUnit(-5.3, -4.6, 0); shelfUnit(3.7, -4.6, 0); shelfUnit(6.15, -4.6, 0, 1.5); shelfUnit(-6.6, -2.2, Math.PI / 2);
+  const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), std({ color: '#FFFFFF', roughness: .6 }), filler.length);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), scl = new THREE.Vector3(), col = new THREE.Color();
+  const palette = ['#C0392B', '#2E86C1', '#27AE60', '#F39C12', '#8E44AD', '#16A085', '#D35400', '#2C3E50', '#E84393', '#F1C40F', '#7F8C8D', '#A0522D'];
+  filler.forEach((b, i) => {
+    v.set(b.x, b.y, .02); q.setFromEuler(new THREE.Euler(0, 0, b.lean)); scl.set(b.bw, b.bh, .44);
+    m4.compose(v, q, scl).premultiply(b.unit.matrixWorld); inst.setMatrixAt(i, m4);
+    inst.setColorAt(i, col.set(palette[Math.floor(b.hue * palette.length)]).offsetHSL(0, 0, (rnd() - .5) * .12));
+  });
+  inst.castShadow = true; inst.receiveShadow = true; inst.userData.filler = true; sc.add(inst); lib.picks.push(inst);
+  // display racks with the story books, covers facing out
+  lib.books = [];
+  [['Defne', -2.25], ['Nisan', .75]].forEach(([who, cx]) => {
+    const rack = group();
+    rack.add(box(2.8, 2.6, .12, woodDark, 0, 1.3, -.32)); [-1, 1].forEach(sd => rack.add(box(.12, 2.6, .5, wood, sd * 1.34, 1.3, -.1)));
+    [.55, 1.55].forEach(y => { const ledge = box(2.6, .07, .32, wood, 0, y, -.05); rack.add(ledge); rack.add(box(2.6, .14, .05, wood, 0, y + .07, .1)); });
+    rack.position.set(cx, 0, -4.62); sc.add(rack);
+    const sign = label(`📚 Boeken van ${who}`, { size: .62 }); sign.position.set(cx, 3.05, -4.1); sign.material.depthTest = false; sign.renderOrder = 5; sc.add(sign);
+    Stad.BOOKS.map((b, i) => [b, i]).filter(([b]) => b.who === who).forEach(([b, idx], k) => {
+      const cover = coverTexture(b), side = std({ color: b.color, roughness: .55 }), pages = std({ color: '#FBF5E6', roughness: .9 });
+      const bk = mesh(new THREE.BoxGeometry(.72, .96, .1), [pages, side, pages, pages, std({ map: cover, roughness: .5 }), side]);
+      const holder = group(bk); holder.userData.libBook = idx;
+      holder.position.set(cx - .85 + k * .85, 1.62 + .48, -4.6); holder.rotation.x = -.18;
+      holder.userData.home = { pos: holder.position.clone(), quat: holder.quaternion.clone() };
+      sc.add(holder); lib.books.push(holder); lib.picks.push(holder);
+    });
+    // a few lying books on the lower ledge
+    for (let k = 0; k < 4; k++) { const lb = box(.55, .1 + rnd() * .05, .3, palette[(k * 5 + (cx > 0 ? 3 : 0)) % palette.length], cx - .9 + k * .6, .64 + .06, -4.62); lb.rotation.y = (rnd() - .5) * .3; sc.add(lb); }
+  });
+  // reading corner: rug, armchair, floor lamp, side table with a plant, a window with curtains
+  { const rugC = document.createElement('canvas'); rugC.width = rugC.height = 256; const x = rugC.getContext('2d');
+    ['#C94F6D', '#F2C14E', '#C94F6D', '#3F8FDB', '#C94F6D'].forEach((cl, i) => { x.fillStyle = cl; x.beginPath(); x.arc(128, 128, 128 - i * 24, 0, 7); x.fill(); });
+    const rt = new THREE.CanvasTexture(rugC); rt.colorSpace = THREE.SRGBColorSpace;
+    const rug = flatOn(mesh(new THREE.CircleGeometry(1.9, 40), std({ map: rt, roughness: 1 }), -4.4, .02, 2.5)); rug.rotation.x = -Math.PI / 2; sc.add(rug); }
+  const chair = group(), cloth = std({ color: '#5E7CC2', roughness: .9 });
+  chair.add(box(1.4, .45, 1.2, cloth, 0, .4, 0)); chair.add(box(1.4, 1.1, .3, cloth, 0, .95, -.5)); [-1, 1].forEach(sd => chair.add(box(.25, .75, 1.2, cloth, sd * .7, .6, 0)));
+  chair.add(box(1.1, .14, .9, std({ color: '#F2C14E', roughness: .9 }), 0, .66, .05));
+  [-1, 1].forEach(sd => [-1, 1].forEach(sz => chair.add(cyl(.05, .04, .2, woodDark, sd * .6, .1, sz * .5, 6))));
+  chair.position.set(-5.3, 0, 2.1); chair.rotation.y = Math.PI / 4; chair.userData.chair = true; sc.add(chair); lib.picks.push(chair);
+  sc.add(cyl(.2, .25, .06, METAL, -6.3, .03, 3.7, 14)); sc.add(cyl(.03, .03, 2.4, METAL, -6.3, 1.2, 3.7, 8));
+  sc.add(mesh(new THREE.CylinderGeometry(.25, .45, .5, 18, 1, true), std({ color: '#FFE7B8', emissive: '#FFD58A', emissiveIntensity: .6, side: THREE.DoubleSide }), -6.3, 2.55, 3.7));
+  sc.add(cyl(.45, .45, .06, wood, -6.25, .75, .9, 18)); sc.add(cyl(.06, .06, .75, wood, -6.25, .37, .9, 8));
+  sc.add(cyl(.18, .14, .3, '#C8693E', -6.25, .93, .9, 12)); sc.add(mesh(new THREE.IcosahedronGeometry(.3, 1), '#3E9A4A', -6.25, 1.3, .9));
+  sc.add(box(.08, 2, 2.2, '#F6F4F0', -6.98, 2.7, 2.6)); sc.add(box(.06, 1.8, 2, GLASS, -6.96, 2.7, 2.6));
+  sc.add(box(.07, 1.8, .06, '#F6F4F0', -6.94, 2.7, 2.6)); sc.add(box(.07, .06, 2, '#F6F4F0', -6.94, 2.7, 2.6));
+  [1.35, 3.85].forEach(z => sc.add(box(.1, 2.4, .5, std({ color: '#C94F6D', roughness: .95 }), -6.9, 2.6, z)));
+  // a round table with a globe and a stack of books, two stools
+  sc.add(cyl(1, 1, .08, wood, 4, 1.1, 2.2, 28)); sc.add(cyl(.12, .2, 1.1, woodDark, 4, .55, 2.2, 10));
+  sc.add(cyl(.08, .14, .3, METAL, 4.4, 1.3, 2, 10)); sc.add(sph(.32, std({ color: '#5DADE2', roughness: .4 }), 4.4, 1.75, 2, 18));
+  [0, 1, 2].forEach(k => sc.add(box(.5, .09, .36, palette[k * 3], 3.6, 1.19 + k * .09, 2.4)));
+  [[2.7, 2.9], [5.1, 1.4]].forEach(([x, z]) => { sc.add(cyl(.32, .3, .08, '#E05A4B', x, .55, z, 16)); sc.add(cyl(.05, .05, .55, woodDark, x, .27, z, 6)); });
+  // plants in the corners, a big name sign, the exit mat
+  [[6.4, -3.6], [-6.4, -4.4]].forEach(([x, z]) => { sc.add(cyl(.32, .25, .6, '#C8693E', x, .3, z, 14)); [[0, 1.1, 0, .5], [.25, .9, .15, .35], [-.2, .95, -.1, .38]].forEach(([dx, dy, dz, r]) => sc.add(mesh(new THREE.IcosahedronGeometry(r, 1), '#3F8B3E', x + dx, dy, z + dz))); });
+  const title = label('📚 Bibliotheek', { size: 1 }); title.position.set(-6.4, 4.7, 0); title.material.depthTest = false; title.renderOrder = 5; sc.add(title);
+  const mat2 = box(2.2, .04, 1, '#9C3B3B', 0, .02, 4.75); mat2.userData.exit = true; sc.add(mat2); lib.picks.push(mat2);
+  const exitSign = label('🚪 Uitgang', { size: .55 }); exitSign.position.set(0, 1, 4.85); sc.add(exitSign);
+  return sc;
+}
+
+function libHud() {
+  const h = lib.held !== null && lib.held !== undefined;
+  $('#hud').innerHTML = `<button class="act green" data-lib="out">← Naar buiten</button>` +
+    (h ? `<button class="act" data-lib="read">📖 Lezen</button><button class="act" data-lib="back">↩ Terugzetten</button>` : '');
+}
+$('#hud').addEventListener('click', e => {
+  const b = e.target.closest('[data-lib]'); if (!b || !lib.on) return;
+  if (b.dataset.lib === 'out') Stad.leaveRoom();
+  if (b.dataset.lib === 'read') readHeld();
+  if (b.dataset.lib === 'back') putBack();
+});
+function enterLibrary() {
+  if (!lib.scene) lib.scene = buildLibrary();
+  if (lib.root) lib.scene.remove(lib.root, lib.mk);
+  lib.root = new THREE.Group(); lib.root.add(makePerson(state.look)); lib.root.children[0].userData.kind = 'walk';
+  lib.mk = new THREE.Group(); lib.mk.add(makeMisem()); lib.mk.children[0].userData.kind = 'misem';
+  lib.scene.add(lib.root, lib.mk);
+  Object.assign(lib, { on: true, P: { x: 0, z: 3.4 }, M: { x: -.9, z: 3.8 }, target: null, arrive: null, held: null, sitting: false, anim: null });
+  lib.root.rotation.y = Math.PI; lib.mk.rotation.y = Math.PI;
+  lib.books.forEach(b => { b.removeFromParent(); lib.scene.add(b); b.position.copy(b.userData.home.pos); b.quaternion.copy(b.userData.home.quat); b.scale.setScalar(1); });
+  look.set(0, 1.4, .4); libStep(0, 0); look.set(lib.P.x * .3, 1.4, lib.P.z * .3 - .6); libStep(0, 0);
+  libHud();
+  Stad.toast('Welkom in de bibliotheek! Tik op een boek van Defne of Nisan om het te pakken. 📚', 3600);
+}
+function leaveLibrary() {
+  if (!lib.on) return;
+  lib.on = false; lib.keys.clear(); $('#reader3d').hidden = true; $('#hud').innerHTML = '';
+  applyView();
+}
+function libWalk(x, z, cb) { if (lib.sitting) standUp(); lib.target = { x, z }; lib.arrive = cb || null; }
+const LIB_RAY = new THREE.Raycaster();
+function libTap(cx, cy) {
+  if (lib.anim || !$('#reader3d').hidden) return;
+  const r = canvas.getBoundingClientRect();
+  ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  LIB_RAY.setFromCamera(ndc, camera);
+  for (const h of LIB_RAY.intersectObjects(lib.picks, true)) {
+    let o = h.object; while (o && o.userData.libBook === undefined && !o.userData.chair && !o.userData.exit && !o.userData.filler) o = o.parent;
+    if (!o) continue;
+    if (o.userData.libBook !== undefined) { if (o.parent === lib.scene) return libWalk(o.userData.home.pos.x, -3.75, () => takeBook(o)); continue; }
+    if (o.userData.chair) return libWalk(-4.35, 2.95, sitDown);
+    if (o.userData.exit) return libWalk(0, 4.6, () => Stad.leaveRoom());
+    if (o.userData.filler) return Stad.toast('Die boeken zijn nog dicht. Kies een boek met de voorkant naar voren!', 2600);
+  }
+  if (LIB_RAY.ray.intersectPlane(groundPlane, hit)) libWalk(hit.x, hit.z);
+}
+const handPos = new THREE.Vector3(0, 1.45, .45);
+function takeBook(book) {
+  if (lib.held !== null) { const old = lib.books.find(b => b.userData.libBook === lib.held); homeBook(old); }
+  const from = book.position.clone(), fromQ = book.quaternion.clone();
+  lib.anim = { t: 0, dur: .7, update(k) {
+    const to = handPos.clone().applyMatrix4(lib.root.matrixWorld);
+    book.position.lerpVectors(from, to, k); book.position.y += Math.sin(k * Math.PI) * .5;
+    book.quaternion.slerpQuaternions(fromQ, new THREE.Quaternion().setFromEuler(new THREE.Euler(-1.05, lib.root.rotation.y, 0, 'YXZ')), k);
+    book.scale.setScalar(1 - k * .25);
+  }, done() {
+    lib.root.add(book); book.position.copy(handPos); book.quaternion.setFromEuler(new THREE.Euler(-1.05, 0, 0)); book.scale.setScalar(.75);
+    lib.held = book.userData.libBook; libHud(); SOUND.pop();
+  } };
+  SOUND.whee();
+}
+function homeBook(book) {
+  book.removeFromParent(); lib.scene.add(book);
+  book.position.copy(book.userData.home.pos); book.quaternion.copy(book.userData.home.quat); book.scale.setScalar(1);
+  lib.held = null;
+}
+function putBack() {
+  const book = lib.books.find(b => b.userData.libBook === lib.held); if (!book) return;
+  libWalk(book.userData.home.pos.x, -3.75, () => {
+    const from = new THREE.Vector3(), fromQ = new THREE.Quaternion();
+    book.getWorldPosition(from); book.getWorldQuaternion(fromQ);
+    book.removeFromParent(); lib.scene.add(book); book.position.copy(from); book.quaternion.copy(fromQ);
+    lib.held = null; libHud();
+    lib.anim = { t: 0, dur: .6, update(k) { book.position.lerpVectors(from, book.userData.home.pos, k); book.quaternion.slerpQuaternions(fromQ, book.userData.home.quat, k); book.scale.setScalar(.75 + k * .25); }, done() { SOUND.pop(); } };
+  });
+}
+function readHeld() {
+  if (lib.held === null) return;
+  Stad.readBook(Stad.BOOKS[lib.held], 0, $('#reader3d'), () => {});
+  SOUND.pop();
+}
+function sitDown() {
+  lib.sitting = true; lib.P.x = -5.05; lib.P.z = 2.35;
+  const u = lib.root.children[0].userData;
+  u.legL.rotation.x = u.legR.rotation.x = -1.45;
+  lib.root.rotation.y = Math.PI / 4; lib.root.userData.want = Math.PI / 4;
+  if (lib.held !== null) later(400, readHeld); else Stad.toast('Lekker zitten! Pak een boek om te lezen.', 2200);
+}
+function standUp() {
+  lib.sitting = false;
+  const u = lib.root.children[0].userData; u.legL.rotation.x = u.legR.rotation.x = 0;
+  lib.P.x = -4.35; lib.P.z = 2.95;
+}
+function libStep(dt, t) {
+  if (lib.anim) { lib.anim.t += dt; const k = Math.min(1, lib.anim.t / lib.anim.dur), a = lib.anim; a.update(k); if (k >= 1) { lib.anim = null; a.done(); } }
+  let vx = 0, vz = 0;
+  if (lib.keys.size && $('#reader3d').hidden) {
+    const kx = (lib.keys.has('ArrowRight') ? 1 : 0) - (lib.keys.has('ArrowLeft') ? 1 : 0), ky = (lib.keys.has('ArrowDown') ? 1 : 0) - (lib.keys.has('ArrowUp') ? 1 : 0);
+    if (kx || ky) { if (lib.sitting) standUp(); [vx, vz] = keyDir(kx, ky); const l = Math.hypot(vx, vz); vx /= l; vz /= l; lib.target = null; lib.arrive = null; }
+  } else if (lib.target && !lib.anim) {
+    const dx = lib.target.x - lib.P.x, dz = lib.target.z - lib.P.z, d = Math.hypot(dx, dz);
+    if (d < .08) { lib.target = null; const f = lib.arrive; lib.arrive = null; if (f) f(); }
+    else { vx = dx / d; vz = dz / d; }
+  }
+  const moving = !!(vx || vz);
+  if (moving) {
+    const sp = 3.2 * dt;
+    let nx = Math.max(-6.2, Math.min(6.6, lib.P.x + vx * sp)), nz = Math.max(-3.95, Math.min(4.65, lib.P.z + vz * sp));
+    LIB_OBST.forEach(([ox, oz, r]) => { const dx = nx - ox, dz = nz - oz, d = Math.hypot(dx, dz); if (d < r) { nx = ox + dx / d * r; nz = oz + dz / d * r; } });
+    if (lib.target && Math.hypot(nx - lib.P.x, nz - lib.P.z) < sp * .2) { lib.target = null; lib.arrive = null; }
+    lib.P.x = nx; lib.P.z = nz;
+  }
+  const tx = lib.P.x - .7, tz = lib.P.z + .5, mdx = tx - lib.M.x, mdz = tz - lib.M.z, md = Math.hypot(mdx, mdz);
+  if (md > .05) { const ms = Math.min(md, Math.max(3, md * 5) * dt); lib.M.x += mdx / md * ms; lib.M.z += mdz / md * ms; }
+  lib.root.position.set(lib.P.x, lib.sitting ? .28 : 0, lib.P.z); lib.mk.position.set(lib.M.x, 0, lib.M.z);
+  if (!lib.sitting) heading(lib.root, lib.P.x, lib.P.z, dt, lib.held === null);
+  heading(lib.mk, lib.M.x, lib.M.z, dt, true);
+  const fig = lib.root.children[0];
+  if (!lib.sitting) animateFigure(fig, moving, t);
+  if (lib.held !== null || lib.sitting) { fig.userData.armL.rotation.x = fig.userData.armR.rotation.x = -1.05; fig.userData.armL.rotation.z = .25; fig.userData.armR.rotation.z = -.25; }
+  else { fig.userData.armL.rotation.z = -.1; fig.userData.armR.rotation.z = .1; }
+  animateFigure(lib.mk.children[0], md > .05, t + .4);
+  // camera: the room stays in view, drifting a little with Defne
+  const a = camera.userData.aspect || 1, v = 6.4 * Math.max(1, 1.05 / a);
+  if (camera.top !== v) { Object.assign(camera, { left: -v * a, right: v * a, top: v, bottom: -v }); camera.updateProjectionMatrix(); }
+  const follow = a < .8 ? .15 : .3;
+  look.lerp(new THREE.Vector3(lib.P.x * follow, 1.4, lib.P.z * follow - .6), Math.min(1, dt * 4));
+  camera.position.copy(look).addScaledVector(ISO, 60); camera.lookAt(look);
+}
+document.addEventListener('keydown', e => { if (lib.on && e.key.startsWith('Arrow')) { lib.keys.add(e.key); e.preventDefault(); } });
+document.addEventListener('keyup', e => lib.keys.delete(e.key));
+
 // ================= Build and start =================
 (async () => {
   try { await Promise.all([document.fonts.load('700 64px Fredoka'), document.fonts.load('700 20px Nunito')]); } catch (e) {}
@@ -1070,10 +1332,10 @@ function frame(now) {
   nisanG = tagged(makePerson(NISAN_LOOK), { npc: true }); nisanG.position.set(nisanPos.x * S, 0, nisanPos.y * S);
   scene.add(horseG, babyG, nisanG);
   resize();
-  Stad.boot({ drawPlayer, update() {}, resize, nisanSays, play, keyDir, headScreen });
+  Stad.boot({ drawPlayer, update() {}, resize, nisanSays, play, keyDir, headScreen, enterRoom: id => id === 'bieb' && (enterLibrary(), true), leaveRoom: leaveLibrary });
   updateCamera(0, true);
   $('#loading').remove();
-  window.stad3d = { gl, scene, THREE, makePerson, makeMisem };  // handy for checking things in the browser console
+  window.stad3d = { gl, scene, camera, THREE, makePerson, makeMisem, lib };  // handy for checking things in the browser console
   requestAnimationFrame(frame);
 })();
 </script>

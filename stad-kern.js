@@ -326,6 +326,7 @@
       M.x += dx / d * ms; M.y += dy / d * ms;
       if (Math.abs(dx) > 2) M.face = dx < 0 ? -1 : 1;
     }
+    if (roomOpen || activity) return;  // arriving may have opened a room or started a ride
     R.update();
     near();
     placeHeadBtn();
@@ -414,6 +415,9 @@
   function openRoom(id) {
     const p = PLACES.find(q => q.id === id) || SPECIAL_ROOMS[id];
     roomOpen = id; keys.clear(); target = null; closeHeadMenu(); $('#headBtn').hidden = true;
+    // the page can show a room itself (stad3d.html walks Defne around a 3D library)
+    hud('room', '');
+    if (R.enterRoom && R.enterRoom(id)) { SOUND.pop(); return; }
     $('#roomTitle').textContent = `${p.icon} ${p.name}`;
     $('#room').hidden = false; $('#room').style.background = p.wall;
     $('#roomBody').scrollTop = 0;
@@ -424,6 +428,7 @@
     if (!roomOpen) return;
     const p = PLACES.find(q => q.id === roomOpen);
     if (roomOpen === 'skate') stopSkate();
+    if (R.leaveRoom) R.leaveRoom(roomOpen);
     roomOpen = null;
     $('#room').hidden = true; $('#roomBody').innerHTML = '';
     if (p) { const d = doorOf(p); P.x = d.x; P.y = d.y + 40; M.x = P.x - 36; M.y = P.y + 6; }
@@ -460,8 +465,8 @@
       <div class="panel" style="background:#FFF3E2">${shelf('Defne')}${shelf('Nisan')}</div></div><div class="reader" id="reader" hidden></div>`;
     body.querySelectorAll('[data-book]').forEach(b => b.addEventListener('click', () => readBook(BOOKS[+b.dataset.book], 0)));
   };
-  function readBook(book, i) {
-    const r = $('#reader'), [pic, text] = book.pages[i], last = i === book.pages.length - 1;
+  function readBook(book, i, r = $('#reader'), onClose) {
+    const [pic, text] = book.pages[i], last = i === book.pages.length - 1;
     r.hidden = false;
     r.innerHTML = `<div class="page"><h3>${book.title}</h3><div class="pic" aria-hidden="true">${pic}</div><p>${text}</p>
       <small>Bladzijde ${i + 1} van ${book.pages.length}</small>
@@ -469,8 +474,8 @@
       <button class="big green" data-p="close">${last ? 'Uit! Boek dicht' : 'Dicht'}</button>
       <button class="big" data-p="1" ${last ? 'disabled' : ''}>▶</button></div></div>`;
     r.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => {
-      if (b.dataset.p === 'close') { r.hidden = true; if (last) SOUND.yay(); return; }
-      SOUND.pop(); readBook(book, i + +b.dataset.p);
+      if (b.dataset.p === 'close') { r.hidden = true; if (last) SOUND.yay(); if (onClose) onClose(); return; }
+      SOUND.pop(); readBook(book, i + +b.dataset.p, r, onClose);
     }));
   }
 
@@ -914,7 +919,7 @@
   window.Stad = {
     $, pick, clamp, later, store, state, SOUND, sweep, boot, tap,
     DEFAULT_LOOK, NISAN_LOOK, HAIR, HATS, SKIN, personSVG, misemSVG, horseSVG, quadSVG, boardSVG, deckSVG, ARTS, DEFNE_HORSE, BABY_HORSE,
-    W, H, PLACES, ZONES, PLAY, doorOf, nisanPos, P, M, horse, baby, blocked, findPath,
+    W, H, PLACES, ZONES, PLAY, doorOf, nisanPos, P, M, horse, baby, blocked, findPath, BOOKS, readBook, toast, leaveRoom: () => closeRoom(),
     boardOn, riding: () => riding, inRoom: () => !!roomOpen, inIntro: () => introOpen
   };
 })();
